@@ -209,6 +209,14 @@
               "type": "DIY",
               "status": "open",
               "completedOn": ""
+            },
+            {
+              "id": "bathroom-recaulk-tub",
+              "title": "Recaulk tub",
+              "priority": "important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
             }
           ]
         },
@@ -292,7 +300,7 @@
               "id": "basement-evaluate-wood-walls",
               "title": "Evaluate basement wood walls before drywalling",
               "priority": "later",
-              "type": "contractor",
+              "type": "DIY",
               "status": "open",
               "completedOn": ""
             },
@@ -300,7 +308,7 @@
               "id": "basement-drywall-project",
               "title": "Basement drywall project later",
               "priority": "later",
-              "type": "contractor",
+              "type": "DIY",
               "status": "open",
               "completedOn": ""
             }
@@ -309,16 +317,7 @@
         {
           "id": "bottom-downstairs-bathroom",
           "name": "Downstairs Bathroom",
-          "tasks": [
-            {
-              "id": "downstairs-bathroom-assess",
-              "title": "Assess downstairs bathroom condition",
-              "priority": "important",
-              "type": "DIY",
-              "status": "open",
-              "completedOn": ""
-            }
-          ]
+          "tasks": []
         },
         {
           "id": "bottom-laundry-electrical-storage",
@@ -338,7 +337,7 @@
               "id": "electrical-review-aluminum-wiring",
               "title": "Review aluminum wiring safety plan",
               "priority": "critical",
-              "type": "contractor",
+              "type": "DIY",
               "status": "open",
               "completedOn": ""
             },

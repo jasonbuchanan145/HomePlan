@@ -544,14 +544,14 @@
 
     .top-bedroom-1 { left: 4%; top: 6%; width: 21%; height: 28%; }
     .top-bedroom-2 { left: 25%; top: 6%; width: 19%; height: 28%; }
-    .top-stairs { left: 44%; top: 6%; width: 11%; height: 28%; }
-    .top-living-room { left: 55%; top: 6%; width: 39%; height: 46%; }
-    .top-dining-room { left: 66%; top: 52%; width: 28%; height: 18%; }
-    .top-kitchen { left: 46%; top: 52%; width: 20%; height: 18%; }
-    .top-bathroom { left: 34%; top: 52%; width: 12%; height: 18%; }
+    .top-stairs { left: 44%; top: 6%; width: 22%; height: 32%; }
+    .top-living-room { left: 66%; top: 6%; width: 28%; height: 46%; }
+    .top-dining-room { left: 66%; top: 52%; width: 28%; height: 28%; }
+    .top-kitchen { left: 46%; top: 52%; width: 20%; height: 28%; }
+    .top-bathroom { left: 34%; top: 52%; width: 12%; height: 28%; }
     .top-bedroom-3 { left: 4%; top: 52%; width: 30%; height: 28%; }
     .top-hall-closet { left: 44%; top: 38%; width: 11%; height: 14%; }
-    .top-back-patio { left: 46%; top: 74%; width: 28%; height: 18%; border-style: dashed; background: rgba(220, 238, 232, 0.76); }
+    .top-back-patio { left: 46%; top: 80%; width: 20%; height: 14%; border-style: dashed; background: rgba(220, 238, 232, 0.76); }
 
     .bottom-garage { left: 4%; top: 8%; width: 39%; height: 44%; }
     .bottom-stairs { left: 43%; top: 8%; width: 18%; height: 22%; }
@@ -833,7 +833,8 @@
               tasks: [
                 { id: "bathroom-install-vent", title: "Install upstairs bathroom vent", priority: "critical", type: "contractor", status: "open", completedOn: "", doFirst: true, doFirstRank: 40 },
                 { id: "bathroom-replace-vanity", title: "Replace bathroom vanity", priority: "important", type: "DIY", status: "open", completedOn: "" },
-                { id: "bathroom-replace-toilet", title: "Replace bathroom toilet", priority: "important", type: "DIY", status: "open", completedOn: "" }
+                { id: "bathroom-replace-toilet", title: "Replace bathroom toilet", priority: "important", type: "DIY", status: "open", completedOn: "" },
+                { id: "bathroom-recaulk-tub", title: "Recaulk tub", priority: "important", type: "DIY", status: "open", completedOn: "" }
               ]
             },
             {
@@ -889,17 +890,15 @@
               name: "Family Room / Office",
               className: "bottom-family-room-office",
               tasks: [
-                { id: "basement-evaluate-wood-walls", title: "Evaluate basement wood walls before drywalling", priority: "later", type: "contractor", status: "open", completedOn: "" },
-                { id: "basement-drywall-project", title: "Basement drywall project later", priority: "later", type: "contractor", status: "open", completedOn: "" }
+                { id: "basement-evaluate-wood-walls", title: "Evaluate basement wood walls before drywalling", priority: "later", type: "DIY", status: "open", completedOn: "" },
+                { id: "basement-drywall-project", title: "Basement drywall project later", priority: "later", type: "DIY", status: "open", completedOn: "" }
               ]
             },
             {
               id: "bottom-downstairs-bathroom",
               name: "Downstairs Bathroom",
               className: "bottom-downstairs-bathroom",
-              tasks: [
-                { id: "downstairs-bathroom-assess", title: "Assess downstairs bathroom condition", priority: "important", type: "DIY", status: "open", completedOn: "" }
-              ]
+              tasks: []
             },
             {
               id: "bottom-laundry-electrical-storage",
@@ -907,7 +906,7 @@
               className: "bottom-laundry-electrical-storage",
               tasks: [
                 { id: "electrical-schedule-assessment", title: "Schedule electrician to assess old panel/service and aluminum wiring", priority: "critical", type: "contractor", status: "open", completedOn: "", doFirst: true, doFirstRank: 30 },
-                { id: "electrical-review-aluminum-wiring", title: "Review aluminum wiring safety plan", priority: "critical", type: "contractor", status: "open", completedOn: "" },
+                { id: "electrical-review-aluminum-wiring", title: "Review aluminum wiring safety plan", priority: "critical", type: "DIY", status: "open", completedOn: "" },
                 { id: "laundry-install-washer", title: "Install washer", priority: "complete", type: "done", status: "done", completedOn: "2026-05-06" }
               ]
             }
