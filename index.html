@@ -140,6 +140,33 @@
       gap: 14px;
     }
 
+    .view-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+
+    .view-button {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      color: var(--muted);
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .view-button[aria-pressed="true"] {
+      background: var(--ink);
+      color: white;
+      border-color: var(--ink);
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
     .panel {
       padding: 14px;
     }
@@ -392,7 +419,7 @@
 
     .progress-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
       margin-top: 12px;
     }
@@ -450,6 +477,26 @@
       background: rgba(255, 244, 223, 0.72);
     }
 
+    .sort-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-weight: inherit;
+      text-transform: inherit;
+      cursor: pointer;
+    }
+
+    .sort-indicator {
+      color: var(--accent);
+      font-size: 0.76rem;
+    }
+
     .task-table tr:last-child td {
       border-bottom: 0;
     }
@@ -505,7 +552,7 @@
       }
 
       .summary-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .workbench {
@@ -556,16 +603,6 @@
 
     <section class="summary-grid" aria-label="Project summary">
       <article class="summary-card">
-        <span class="summary-label">Critical items</span>
-        <strong class="summary-value" id="critical-count">0</strong>
-        <p class="summary-note">Safety and service items to move first.</p>
-      </article>
-      <article class="summary-card">
-        <span class="summary-label">Contractor needed</span>
-        <strong class="summary-value" id="contractor-count">0</strong>
-        <p class="summary-note">Calls, quotes, or pro assessment.</p>
-      </article>
-      <article class="summary-card">
         <span class="summary-label">Completed</span>
         <strong class="summary-value" id="done-count">0</strong>
         <p class="summary-note">Finished and verified.</p>
@@ -577,7 +614,12 @@
       </article>
     </section>
 
-    <section class="workbench">
+    <div class="view-toggle" aria-label="Dashboard view">
+      <button class="view-button" type="button" aria-pressed="true" data-view-mode="plan">Interactive Floor Plan</button>
+      <button class="view-button" type="button" aria-pressed="false" data-view-mode="table">List All Tasks</button>
+    </div>
+
+    <section class="workbench" id="plan-view">
       <div class="panel">
         <div class="panel-header">
           <div>
@@ -638,6 +680,14 @@
             <span>Open</span>
           </div>
           <div class="progress-stat">
+            <strong id="critical-count">0</strong>
+            <span>Critical</span>
+          </div>
+          <div class="progress-stat">
+            <strong id="contractor-count">0</strong>
+            <span>Contractor</span>
+          </div>
+          <div class="progress-stat">
             <strong id="later-count">0</strong>
             <span>Later</span>
           </div>
@@ -649,23 +699,23 @@
       </div>
     </section>
 
-    <section class="panel table-panel" aria-labelledby="all-tasks-title">
+    <section class="panel table-panel" id="table-view" aria-labelledby="all-tasks-title" hidden>
       <div class="panel-header">
         <div>
           <h2 id="all-tasks-title">All Tasks</h2>
-          <p>Select a row to jump back to the room or task group.</p>
+          <p>Tap a header to sort. Select a row to open its room or task group.</p>
         </div>
       </div>
       <div class="table-wrap">
         <table class="task-table">
           <thead>
             <tr>
-              <th scope="col">Task</th>
-              <th scope="col">Area</th>
-              <th scope="col">Priority</th>
-              <th scope="col">Type</th>
-              <th scope="col">Status</th>
-              <th scope="col">Completed</th>
+              <th scope="col"><button class="sort-button" type="button" data-sort-key="title">Task <span class="sort-indicator" data-sort-indicator="title"></span></button></th>
+              <th scope="col"><button class="sort-button" type="button" data-sort-key="area">Area <span class="sort-indicator" data-sort-indicator="area"></span></button></th>
+              <th scope="col"><button class="sort-button" type="button" data-sort-key="priority">Priority <span class="sort-indicator" data-sort-indicator="priority"></span></button></th>
+              <th scope="col"><button class="sort-button" type="button" data-sort-key="type">Type <span class="sort-indicator" data-sort-indicator="type"></span></button></th>
+              <th scope="col"><button class="sort-button" type="button" data-sort-key="status">Status <span class="sort-indicator" data-sort-indicator="status"></span></button></th>
+              <th scope="col"><button class="sort-button" type="button" data-sort-key="completedOn">Completed <span class="sort-indicator" data-sort-indicator="completedOn"></span></button></th>
             </tr>
           </thead>
           <tbody id="task-table-body"></tbody>
@@ -852,10 +902,15 @@
     const state = {
       activeFloor: "top",
       selectedRoomId: "top-stairs",
-      taskFilter: "rooms"
+      taskFilter: "rooms",
+      viewMode: "plan",
+      sortKey: "priority",
+      sortDirection: "asc"
     };
 
     const floorPlan = document.querySelector("#floor-plan");
+    const planView = document.querySelector("#plan-view");
+    const tableView = document.querySelector("#table-view");
     const roomTitle = document.querySelector("#selected-room-title");
     const roomSubtitle = document.querySelector("#selected-room-subtitle");
     const roomTasks = document.querySelector("#room-tasks");
@@ -905,6 +960,29 @@
       if (!dateValue) return "—";
       const [year, month, day] = dateValue.split("-");
       return `${Number(month)}/${Number(day)}/${year}`;
+    }
+
+    function sortValue(task, key) {
+      const priorityRank = { critical: 1, important: 2, later: 3, complete: 4 };
+      const statusRank = { open: 1, done: 2 };
+      const typeRank = { contractor: 1, DIY: 2, done: 3 };
+
+      if (key === "priority") return priorityRank[task.priority] || 99;
+      if (key === "status") return statusRank[task.status] || 99;
+      if (key === "type") return typeRank[task.type] || 99;
+      if (key === "completedOn") return task.completedOn || "9999-12-31";
+      return String(task[key] || "").toLowerCase();
+    }
+
+    function sortedTasks() {
+      const direction = state.sortDirection === "asc" ? 1 : -1;
+      return [...allTasks()].sort((a, b) => {
+        const aValue = sortValue(a, state.sortKey);
+        const bValue = sortValue(b, state.sortKey);
+        if (aValue < bValue) return -1 * direction;
+        if (aValue > bValue) return 1 * direction;
+        return a.title.localeCompare(b.title);
+      });
     }
 
     function taskBadges(task) {
@@ -1060,8 +1138,9 @@
     }
 
     function renderTaskTable() {
-      const tasks = allTasks();
+      const tasks = sortedTasks();
       taskTableBody.innerHTML = "";
+      updateSortIndicators();
 
       tasks.forEach((task) => {
         const row = document.createElement("tr");
@@ -1096,10 +1175,28 @@
         });
       }
 
+      state.viewMode = "plan";
       updateFilterButtons();
+      updateViewMode();
       renderFloor();
       renderRoomPanel();
       roomTitle.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function updateViewMode() {
+      planView.hidden = state.viewMode !== "plan";
+      tableView.hidden = state.viewMode !== "table";
+      document.querySelectorAll("[data-view-mode]").forEach((button) => {
+        button.setAttribute("aria-pressed", button.dataset.viewMode === state.viewMode ? "true" : "false");
+      });
+    }
+
+    function updateSortIndicators() {
+      document.querySelectorAll("[data-sort-indicator]").forEach((indicator) => {
+        indicator.textContent = indicator.dataset.sortIndicator === state.sortKey
+          ? (state.sortDirection === "asc" ? "↑" : "↓")
+          : "";
+      });
     }
 
     document.querySelectorAll("[data-floor-tab]").forEach((tab) => {
@@ -1127,6 +1224,26 @@
       });
     });
 
+    document.querySelectorAll("[data-view-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.viewMode = button.dataset.viewMode;
+        updateViewMode();
+      });
+    });
+
+    document.querySelectorAll("[data-sort-key]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const sortKey = button.dataset.sortKey;
+        if (state.sortKey === sortKey) {
+          state.sortDirection = state.sortDirection === "asc" ? "desc" : "asc";
+        } else {
+          state.sortKey = sortKey;
+          state.sortDirection = "asc";
+        }
+        renderTaskTable();
+      });
+    });
+
     function updateFilterButtons() {
       document.querySelectorAll("[data-task-filter]").forEach((button) => {
         button.setAttribute("aria-pressed", button.dataset.taskFilter === state.taskFilter ? "true" : "false");
@@ -1138,6 +1255,7 @@
     renderTaskTable();
     renderFloor();
     renderRoomPanel();
+    updateViewMode();
   </script>
 </body>
 </html>
