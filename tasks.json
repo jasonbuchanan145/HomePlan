@@ -297,6 +297,14 @@
               "completedOn": ""
             },
             {
+              "id": "basement-office-doorframe-and-drywall",
+              "title": "Install a new door frame, drywall, etc at entrance to family room",
+              "priority": "Important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
+            },
+            {
               "id": "basement-drywall-project",
               "title": "Basement drywall project later",
               "priority": "later",
