@@ -542,15 +542,15 @@
       color: var(--muted);
     }
 
-    .top-bedroom-1 { left: 4%; top: 6%; width: 21%; height: 28%; }
-    .top-bedroom-2 { left: 25%; top: 6%; width: 19%; height: 28%; }
+    .top-bedroom-1 { left: 4%; top: 6%; width: 21%; height: 32%; }
+    .top-bedroom-2 { left: 25%; top: 6%; width: 19%; height: 32%; }
     .top-stairs { left: 44%; top: 6%; width: 22%; height: 32%; }
     .top-living-room { left: 66%; top: 6%; width: 28%; height: 46%; }
     .top-dining-room { left: 66%; top: 52%; width: 28%; height: 28%; }
     .top-kitchen { left: 46%; top: 52%; width: 20%; height: 28%; }
     .top-bathroom { left: 34%; top: 52%; width: 12%; height: 28%; }
     .top-bedroom-3 { left: 4%; top: 52%; width: 30%; height: 28%; }
-    .top-hall-closet { left: 44%; top: 38%; width: 11%; height: 14%; }
+    .top-hall-closet { left: 44%; top: 26%; width: 11%; height: 14%; z-index: 4; }
     .top-back-patio { left: 46%; top: 80%; width: 20%; height: 14%; border-style: dashed; background: rgba(220, 238, 232, 0.76); }
 
     .bottom-garage { left: 4%; top: 8%; width: 39%; height: 44%; }
@@ -805,14 +805,6 @@
               className: "top-living-room",
               tasks: [
                 { id: "living-room-attic-sounds", title: "Investigate sounds in attic", priority: "critical", type: "contractor", status: "open", completedOn: "", doFirst: true, doFirstRank: 20 }
-              ]
-            },
-            {
-              id: "top-dining-room",
-              name: "Dining Room",
-              className: "top-dining-room",
-              tasks: [
-                { id: "dining-room-overflow-storage", title: "Plan possible overflow storage", priority: "important", type: "DIY", status: "open", completedOn: "" }
               ]
             },
             {

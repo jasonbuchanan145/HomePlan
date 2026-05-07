@@ -146,14 +146,6 @@
           "id": "top-dining-room",
           "name": "Dining Room",
           "tasks": [
-            {
-              "id": "dining-room-overflow-storage",
-              "title": "Plan possible overflow storage",
-              "priority": "important",
-              "type": "DIY",
-              "status": "open",
-              "completedOn": ""
-            }
           ]
         },
         {
