@@ -305,7 +305,7 @@
 
     .room-name {
       overflow-wrap: anywhere;
-      font-size: clamp(0.68rem, 2.1vw, 0.95rem);
+      font-size: clamp(0.72rem, 1.7vw, 0.95rem);
       font-weight: 850;
       line-height: 1.08;
     }
@@ -318,6 +318,9 @@
 
     .room-badges {
       justify-content: center;
+      position: absolute;
+      right: 5px;
+      bottom: 5px;
     }
 
     .room-badges .badge {
@@ -335,6 +338,21 @@
       flex-wrap: wrap;
       gap: 5px;
       align-items: center;
+    }
+
+    .room.is-compact {
+      align-items: center;
+      justify-content: center;
+      padding: 5px;
+    }
+
+    .room.is-compact .room-name {
+      font-size: clamp(0.68rem, 1.4vw, 0.82rem);
+      line-height: 1;
+    }
+
+    .room.is-compact .room-count {
+      display: none;
     }
 
     .badge {
@@ -525,14 +543,14 @@
     }
 
     .top-bedroom-1 { left: 4%; top: 6%; width: 21%; height: 28%; }
-    .top-bedroom-2 { left: 25%; top: 6%; width: 19%; height: 20%; }
-    .top-stairs { left: 44%; top: 6%; width: 11%; height: 20%; }
+    .top-bedroom-2 { left: 25%; top: 6%; width: 19%; height: 28%; }
+    .top-stairs { left: 44%; top: 6%; width: 11%; height: 28%; }
     .top-living-room { left: 55%; top: 6%; width: 39%; height: 46%; }
     .top-dining-room { left: 66%; top: 52%; width: 28%; height: 18%; }
     .top-kitchen { left: 46%; top: 52%; width: 20%; height: 18%; }
     .top-bathroom { left: 34%; top: 52%; width: 12%; height: 18%; }
-    .top-bedroom-3 { left: 4%; top: 34%; width: 30%; height: 36%; }
-    .top-hall-closet { left: 44%; top: 26%; width: 11%; height: 13%; }
+    .top-bedroom-3 { left: 4%; top: 52%; width: 30%; height: 28%; }
+    .top-hall-closet { left: 44%; top: 38%; width: 11%; height: 14%; }
     .top-back-patio { left: 46%; top: 74%; width: 28%; height: 18%; border-style: dashed; background: rgba(220, 238, 232, 0.76); }
 
     .bottom-garage { left: 4%; top: 8%; width: 39%; height: 44%; }
@@ -739,16 +757,16 @@
           label: "Outside",
           description: "Exterior projects that are not specific to the patio.",
           tasks: [
-            { id: "outside-replace-mailbox", title: "Replace mailbox (HOA violation)", priority: "critical", type: "DIY", status: "open", completedOn: "" },
+            { id: "outside-replace-mailbox", title: "Replace mailbox (HOA violation)", priority: "critical", type: "DIY", status: "open", completedOn: "", doFirst: true, doFirstRank: 35 },
             { id: "outside-repair-light-post", title: "Repair rusted outdoor light post", priority: "important", type: "DIY", status: "open", completedOn: "" },
             { id: "outside-pressure-wash-house", title: "Pressure wash house", priority: "important", type: "DIY", status: "open", completedOn: "" },
-            { id: "outside-buy-pressure-washer", title: "Buy a pressure washer off Facebook Marketplace", priority: "important", type: "DIY", status: "open", completedOn: "" }
+            { id: "outside-buy-pressure-washer", title: "Buy a pressure washer off Facebook Marketplace", priority: "important", type: "DIY", status: "open", completedOn: "", doFirst: true, doFirstRank: 60 }
           ]
         }
       },
       roomTaskSets: {
         stairs: [
-          { id: "stairs-secure-banister", title: "Replace or professionally secure broken stair banister", priority: "critical", type: "DIY", status: "open", completedOn: "" },
+          { id: "stairs-secure-banister", title: "Replace or professionally secure broken stair banister", priority: "critical", type: "DIY", status: "open", completedOn: "", doFirst: true, doFirstRank: 10 },
           { id: "stairs-transition-safety-check", title: "Check stair transition and safety", priority: "important", type: "DIY", status: "open", completedOn: "" }
         ]
       },
@@ -776,7 +794,9 @@
             {
               id: "top-stairs",
               name: "Stairs",
+              mapLabel: "Stairs",
               className: "top-stairs",
+              compact: true,
               sharedTaskSet: "stairs"
             },
             {
@@ -784,7 +804,7 @@
               name: "Living Room",
               className: "top-living-room",
               tasks: [
-                { id: "living-room-attic-sounds", title: "Investigate sounds in attic", priority: "critical", type: "contractor", status: "open", completedOn: "" }
+                { id: "living-room-attic-sounds", title: "Investigate sounds in attic", priority: "critical", type: "contractor", status: "open", completedOn: "", doFirst: true, doFirstRank: 20 }
               ]
             },
             {
@@ -807,9 +827,11 @@
             {
               id: "top-bathroom",
               name: "Bathroom",
+              mapLabel: "Bath",
               className: "top-bathroom",
+              compact: true,
               tasks: [
-                { id: "bathroom-install-vent", title: "Install upstairs bathroom vent", priority: "critical", type: "contractor", status: "open", completedOn: "" },
+                { id: "bathroom-install-vent", title: "Install upstairs bathroom vent", priority: "critical", type: "contractor", status: "open", completedOn: "", doFirst: true, doFirstRank: 40 },
                 { id: "bathroom-replace-vanity", title: "Replace bathroom vanity", priority: "important", type: "DIY", status: "open", completedOn: "" },
                 { id: "bathroom-replace-toilet", title: "Replace bathroom toilet", priority: "important", type: "DIY", status: "open", completedOn: "" }
               ]
@@ -825,7 +847,9 @@
             {
               id: "top-hall-closet",
               name: "Hall Closet",
+              mapLabel: "Closet",
               className: "top-hall-closet",
+              compact: true,
               tasks: [
                 { id: "hall-closet-fix-rack-support", title: "Fix rack support beam", priority: "important", type: "DIY", status: "open", completedOn: "" }
               ]
@@ -835,7 +859,7 @@
               name: "Back Patio",
               className: "top-back-patio",
               tasks: [
-                { id: "patio-fix-screen-door", title: "Fix patio screen door", priority: "important", type: "DIY", status: "open", completedOn: "" }
+                { id: "patio-fix-screen-door", title: "Fix patio screen door", priority: "important", type: "DIY", status: "open", completedOn: "", doFirst: true, doFirstRank: 50 }
               ]
             }
           ]
@@ -855,7 +879,9 @@
             {
               id: "bottom-stairs",
               name: "Stairs",
+              mapLabel: "Stairs",
               className: "bottom-stairs",
+              compact: true,
               sharedTaskSet: "stairs"
             },
             {
@@ -880,23 +906,14 @@
               name: "Laundry / Electrical / Storage",
               className: "bottom-laundry-electrical-storage",
               tasks: [
-                { id: "electrical-schedule-assessment", title: "Schedule electrician to assess old panel/service and aluminum wiring", priority: "critical", type: "contractor", status: "open", completedOn: "" },
+                { id: "electrical-schedule-assessment", title: "Schedule electrician to assess old panel/service and aluminum wiring", priority: "critical", type: "contractor", status: "open", completedOn: "", doFirst: true, doFirstRank: 30 },
                 { id: "electrical-review-aluminum-wiring", title: "Review aluminum wiring safety plan", priority: "critical", type: "contractor", status: "open", completedOn: "" },
                 { id: "laundry-install-washer", title: "Install washer", priority: "complete", type: "done", status: "done", completedOn: "2026-05-06" }
               ]
             }
           ]
         }
-      },
-      focusTaskTitles: [
-        "Replace or professionally secure broken stair banister",
-        "Investigate sounds in attic",
-        "Schedule electrician to assess old panel/service and aluminum wiring",
-        "Install upstairs bathroom vent",
-        "Fix patio screen door",
-        "Replace mailbox (HOA violation)",
-        "Buy a pressure washer off Facebook Marketplace"
-      ]
+      }
     };
 
     const state = {
@@ -919,6 +936,26 @@
 
     function getRoomTasks(room) {
       return room.sharedTaskSet ? dashboardData.roomTaskSets[room.sharedTaskSet] : room.tasks;
+    }
+
+    function applyExternalTaskData(taskData) {
+      dashboardData.taskGroups = taskData.taskGroups || dashboardData.taskGroups;
+      dashboardData.roomTaskSets = taskData.roomTaskSets || dashboardData.roomTaskSets;
+
+      Object.entries(taskData.floors || {}).forEach(([floorKey, externalFloor]) => {
+        const localFloor = dashboardData.floors[floorKey];
+        if (!localFloor) return;
+
+        externalFloor.rooms.forEach((externalRoom) => {
+          const localRoom = localFloor.rooms.find((room) => room.id === externalRoom.id);
+          if (!localRoom) return;
+
+          if ("tasks" in externalRoom) localRoom.tasks = externalRoom.tasks;
+          if ("sharedTaskSet" in externalRoom) localRoom.sharedTaskSet = externalRoom.sharedTaskSet;
+          if ("mapLabel" in externalRoom) localRoom.mapLabel = externalRoom.mapLabel;
+          if ("compact" in externalRoom) localRoom.compact = externalRoom.compact;
+        });
+      });
     }
 
     function allTasks() {
@@ -1034,14 +1071,14 @@
       floor.rooms.forEach((room) => {
         const button = document.createElement("button");
         button.type = "button";
-        button.className = `room ${room.className}${room.id === state.selectedRoomId ? " is-selected" : ""}`;
+        button.className = `room ${room.className}${room.compact ? " is-compact" : ""}${room.id === state.selectedRoomId ? " is-selected" : ""}`;
         button.setAttribute("aria-pressed", room.id === state.selectedRoomId ? "true" : "false");
         button.dataset.roomId = room.id;
 
         const openTasks = getRoomTasks(room).filter((task) => task.status !== "done").length;
         const badges = roomBadges(room);
         button.innerHTML = `
-          <span class="room-name">${room.name}</span>
+          <span class="room-name">${room.mapLabel || room.name}</span>
           <span class="room-count">${openTasks} open</span>
           <span class="room-badges">${badges.map((badge) => `<span class="badge ${badge}">${badge}</span>`).join("")}</span>
         `;
@@ -1117,10 +1154,9 @@
     }
 
     function renderFocusList() {
-      const tasks = allTasks();
-      const focusTasks = dashboardData.focusTaskTitles
-        .map((title) => tasks.find((task) => task.title === title))
-        .filter(Boolean);
+      const focusTasks = allTasks()
+        .filter((task) => task.doFirst && task.status !== "done")
+        .sort((a, b) => (a.doFirstRank || 999) - (b.doFirstRank || 999));
 
       focusList.innerHTML = "";
       focusTasks.forEach((task) => {
@@ -1250,12 +1286,29 @@
       });
     }
 
-    renderSummary();
-    renderFocusList();
-    renderTaskTable();
-    renderFloor();
-    renderRoomPanel();
-    updateViewMode();
+    function renderDashboard() {
+      renderSummary();
+      renderFocusList();
+      renderTaskTable();
+      renderFloor();
+      renderRoomPanel();
+      updateViewMode();
+    }
+
+    async function initDashboard() {
+      try {
+        const response = await fetch("tasks.json", { cache: "no-store" });
+        if (response.ok) {
+          applyExternalTaskData(await response.json());
+        }
+      } catch (error) {
+        // Opening index.html directly from disk can block fetch; keep the inline data as a fallback.
+      }
+
+      renderDashboard();
+    }
+
+    initDashboard();
   </script>
 </body>
 </html>
