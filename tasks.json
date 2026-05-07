@@ -45,6 +45,14 @@
           "completedOn": ""
         },
         {
+          "id": "outside-play-structure",
+          "title": "Build play structure",
+          "priority": "important",
+          "type": "DIY",
+          "status": "open",
+          "completedOn": ""
+        },        
+        {
           "id": "outside-pressure-wash-house",
           "title": "Pressure wash house",
           "priority": "important",
@@ -69,21 +77,13 @@
     "stairs": [
       {
         "id": "stairs-secure-banister",
-        "title": "Replace or professionally secure broken stair banister",
+        "title": "Replace broken stair banister",
         "priority": "critical",
         "type": "DIY",
         "status": "open",
         "completedOn": "",
         "doFirst": true,
         "doFirstRank": 10
-      },
-      {
-        "id": "stairs-transition-safety-check",
-        "title": "Check stair transition and safety",
-        "priority": "important",
-        "type": "DIY",
-        "status": "open",
-        "completedOn": ""
       }
     ]
   },
