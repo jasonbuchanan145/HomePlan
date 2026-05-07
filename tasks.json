@@ -1,0 +1,336 @@
+{
+  "taskGroups": {
+    "wholeHouse": {
+      "label": "Whole House",
+      "description": "Projects that cut across multiple rooms.",
+      "tasks": [
+        {
+          "id": "whole-repaint-interior",
+          "title": "Repaint interior room by room",
+          "priority": "later",
+          "type": "DIY",
+          "status": "open",
+          "completedOn": ""
+        },
+        {
+          "id": "whole-fix-interior-doors",
+          "title": "Fix interior doors that do not close correctly",
+          "priority": "important",
+          "type": "DIY",
+          "status": "open",
+          "completedOn": ""
+        }
+      ]
+    },
+    "outside": {
+      "label": "Outside",
+      "description": "Exterior projects that are not specific to the patio.",
+      "tasks": [
+        {
+          "id": "outside-replace-mailbox",
+          "title": "Replace mailbox (HOA violation)",
+          "priority": "critical",
+          "type": "DIY",
+          "status": "open",
+          "completedOn": ""
+        },
+        {
+          "id": "outside-repair-light-post",
+          "title": "Repair rusted outdoor light post",
+          "priority": "important",
+          "type": "DIY",
+          "status": "open",
+          "completedOn": ""
+        },
+        {
+          "id": "outside-pressure-wash-house",
+          "title": "Pressure wash house",
+          "priority": "important",
+          "type": "DIY",
+          "status": "open",
+          "completedOn": ""
+        },
+        {
+          "id": "outside-buy-pressure-washer",
+          "title": "Buy a pressure washer off Facebook Marketplace",
+          "priority": "important",
+          "type": "DIY",
+          "status": "open",
+          "completedOn": ""
+        }
+      ]
+    }
+  },
+  "roomTaskSets": {
+    "stairs": [
+      {
+        "id": "stairs-secure-banister",
+        "title": "Replace or professionally secure broken stair banister",
+        "priority": "critical",
+        "type": "DIY",
+        "status": "open",
+        "completedOn": ""
+      },
+      {
+        "id": "stairs-transition-safety-check",
+        "title": "Check stair transition and safety",
+        "priority": "important",
+        "type": "DIY",
+        "status": "open",
+        "completedOn": ""
+      }
+    ]
+  },
+  "floors": {
+    "top": {
+      "label": "Top Floor",
+      "rooms": [
+        {
+          "id": "top-bedroom-1",
+          "name": "Bedroom 1",
+          "tasks": [
+            {
+              "id": "bedroom-1-door-alignment",
+              "title": "Fix door alignment",
+              "priority": "important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
+            }
+          ]
+        },
+        {
+          "id": "top-bedroom-2",
+          "name": "Bedroom 2",
+          "tasks": [
+            {
+              "id": "bedroom-2-door-alignment",
+              "title": "Fix door alignment",
+              "priority": "important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
+            }
+          ]
+        },
+        {
+          "id": "top-stairs",
+          "name": "Stairs",
+          "sharedTaskSet": "stairs"
+        },
+        {
+          "id": "top-living-room",
+          "name": "Living Room",
+          "tasks": [
+            {
+              "id": "living-room-attic-sounds",
+              "title": "Investigate sounds in attic",
+              "priority": "critical",
+              "type": "contractor",
+              "status": "open",
+              "completedOn": ""
+            }
+          ]
+        },
+        {
+          "id": "top-dining-room",
+          "name": "Dining Room",
+          "tasks": [
+            {
+              "id": "dining-room-overflow-storage",
+              "title": "Plan possible overflow storage",
+              "priority": "important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
+            }
+          ]
+        },
+        {
+          "id": "top-kitchen",
+          "name": "Kitchen",
+          "tasks": [
+            {
+              "id": "kitchen-pantry-storage",
+              "title": "Add kitchen pantry/storage",
+              "priority": "important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
+            },
+            {
+              "id": "kitchen-oven-installed",
+              "title": "Oven installed and verified working",
+              "priority": "complete",
+              "type": "done",
+              "status": "done",
+              "completedOn": "2026-05-06"
+            }
+          ]
+        },
+        {
+          "id": "top-bathroom",
+          "name": "Bathroom",
+          "tasks": [
+            {
+              "id": "bathroom-install-vent",
+              "title": "Install upstairs bathroom vent",
+              "priority": "critical",
+              "type": "contractor",
+              "status": "open",
+              "completedOn": ""
+            },
+            {
+              "id": "bathroom-replace-vanity",
+              "title": "Replace bathroom vanity",
+              "priority": "important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
+            },
+            {
+              "id": "bathroom-replace-toilet",
+              "title": "Replace bathroom toilet",
+              "priority": "important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
+            }
+          ]
+        },
+        {
+          "id": "top-bedroom-3",
+          "name": "Bedroom 3",
+          "tasks": [
+            {
+              "id": "bedroom-3-door-alignment",
+              "title": "Fix door alignment",
+              "priority": "complete",
+              "type": "done",
+              "status": "done",
+              "completedOn": "2026-05-04"
+            }
+          ]
+        },
+        {
+          "id": "top-hall-closet",
+          "name": "Hall Closet",
+          "tasks": [
+            {
+              "id": "hall-closet-fix-rack-support",
+              "title": "Fix rack support beam",
+              "priority": "important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
+            }
+          ]
+        },
+        {
+          "id": "top-back-patio",
+          "name": "Back Patio",
+          "tasks": [
+            {
+              "id": "patio-fix-screen-door",
+              "title": "Fix patio screen door",
+              "priority": "important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
+            }
+          ]
+        }
+      ]
+    },
+    "bottom": {
+      "label": "Bottom Floor",
+      "rooms": [
+        {
+          "id": "bottom-garage",
+          "name": "Garage",
+          "tasks": [
+            {
+              "id": "garage-inspect-pest-entry",
+              "title": "Inspect possible pest entry points",
+              "priority": "important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
+            }
+          ]
+        },
+        {
+          "id": "bottom-stairs",
+          "name": "Stairs",
+          "sharedTaskSet": "stairs"
+        },
+        {
+          "id": "bottom-family-room-office",
+          "name": "Family Room / Office",
+          "tasks": [
+            {
+              "id": "basement-evaluate-wood-walls",
+              "title": "Evaluate basement wood walls before drywalling",
+              "priority": "later",
+              "type": "contractor",
+              "status": "open",
+              "completedOn": ""
+            },
+            {
+              "id": "basement-drywall-project",
+              "title": "Basement drywall project later",
+              "priority": "later",
+              "type": "contractor",
+              "status": "open",
+              "completedOn": ""
+            }
+          ]
+        },
+        {
+          "id": "bottom-downstairs-bathroom",
+          "name": "Downstairs Bathroom",
+          "tasks": [
+            {
+              "id": "downstairs-bathroom-assess",
+              "title": "Assess downstairs bathroom condition",
+              "priority": "important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
+            }
+          ]
+        },
+        {
+          "id": "bottom-laundry-electrical-storage",
+          "name": "Laundry / Electrical / Storage",
+          "tasks": [
+            {
+              "id": "electrical-schedule-assessment",
+              "title": "Schedule electrician to assess old panel/service and aluminum wiring",
+              "priority": "critical",
+              "type": "contractor",
+              "status": "open",
+              "completedOn": ""
+            },
+            {
+              "id": "electrical-review-aluminum-wiring",
+              "title": "Review aluminum wiring safety plan",
+              "priority": "critical",
+              "type": "contractor",
+              "status": "open",
+              "completedOn": ""
+            },
+            {
+              "id": "laundry-install-washer",
+              "title": "Install washer",
+              "priority": "complete",
+              "type": "done",
+              "status": "done",
+              "completedOn": "2026-05-06"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
