@@ -32,7 +32,9 @@
           "priority": "critical",
           "type": "DIY",
           "status": "open",
-          "completedOn": ""
+          "completedOn": "",
+          "doFirst": true,
+          "doFirstRank": 35
         },
         {
           "id": "outside-repair-light-post",
@@ -56,7 +58,9 @@
           "priority": "important",
           "type": "DIY",
           "status": "open",
-          "completedOn": ""
+          "completedOn": "",
+          "doFirst": true,
+          "doFirstRank": 60
         }
       ]
     }
@@ -69,7 +73,9 @@
         "priority": "critical",
         "type": "DIY",
         "status": "open",
-        "completedOn": ""
+        "completedOn": "",
+        "doFirst": true,
+        "doFirstRank": 10
       },
       {
         "id": "stairs-transition-safety-check",
@@ -116,6 +122,8 @@
         {
           "id": "top-stairs",
           "name": "Stairs",
+          "mapLabel": "Stairs",
+          "compact": true,
           "sharedTaskSet": "stairs"
         },
         {
@@ -128,7 +136,9 @@
               "priority": "critical",
               "type": "contractor",
               "status": "open",
-              "completedOn": ""
+              "completedOn": "",
+              "doFirst": true,
+              "doFirstRank": 20
             }
           ]
         },
@@ -136,14 +146,6 @@
           "id": "top-dining-room",
           "name": "Dining Room",
           "tasks": [
-            {
-              "id": "dining-room-overflow-storage",
-              "title": "Plan possible overflow storage",
-              "priority": "important",
-              "type": "DIY",
-              "status": "open",
-              "completedOn": ""
-            }
           ]
         },
         {
@@ -171,6 +173,8 @@
         {
           "id": "top-bathroom",
           "name": "Bathroom",
+          "mapLabel": "Bath",
+          "compact": true,
           "tasks": [
             {
               "id": "bathroom-install-vent",
@@ -178,7 +182,9 @@
               "priority": "critical",
               "type": "contractor",
               "status": "open",
-              "completedOn": ""
+              "completedOn": "",
+              "doFirst": true,
+              "doFirstRank": 40
             },
             {
               "id": "bathroom-replace-vanity",
@@ -191,6 +197,14 @@
             {
               "id": "bathroom-replace-toilet",
               "title": "Replace bathroom toilet",
+              "priority": "important",
+              "type": "DIY",
+              "status": "open",
+              "completedOn": ""
+            },
+            {
+              "id": "bathroom-recaulk-tub",
+              "title": "Recaulk tub",
               "priority": "important",
               "type": "DIY",
               "status": "open",
@@ -215,6 +229,8 @@
         {
           "id": "top-hall-closet",
           "name": "Hall Closet",
+          "mapLabel": "Closet",
+          "compact": true,
           "tasks": [
             {
               "id": "hall-closet-fix-rack-support",
@@ -236,7 +252,9 @@
               "priority": "important",
               "type": "DIY",
               "status": "open",
-              "completedOn": ""
+              "completedOn": "",
+              "doFirst": true,
+              "doFirstRank": 50
             }
           ]
         }
@@ -262,6 +280,8 @@
         {
           "id": "bottom-stairs",
           "name": "Stairs",
+          "mapLabel": "Stairs",
+          "compact": true,
           "sharedTaskSet": "stairs"
         },
         {
@@ -272,7 +292,7 @@
               "id": "basement-evaluate-wood-walls",
               "title": "Evaluate basement wood walls before drywalling",
               "priority": "later",
-              "type": "contractor",
+              "type": "DIY",
               "status": "open",
               "completedOn": ""
             },
@@ -280,7 +300,7 @@
               "id": "basement-drywall-project",
               "title": "Basement drywall project later",
               "priority": "later",
-              "type": "contractor",
+              "type": "DIY",
               "status": "open",
               "completedOn": ""
             }
@@ -289,16 +309,7 @@
         {
           "id": "bottom-downstairs-bathroom",
           "name": "Downstairs Bathroom",
-          "tasks": [
-            {
-              "id": "downstairs-bathroom-assess",
-              "title": "Assess downstairs bathroom condition",
-              "priority": "important",
-              "type": "DIY",
-              "status": "open",
-              "completedOn": ""
-            }
-          ]
+          "tasks": []
         },
         {
           "id": "bottom-laundry-electrical-storage",
@@ -310,13 +321,15 @@
               "priority": "critical",
               "type": "contractor",
               "status": "open",
-              "completedOn": ""
+              "completedOn": "",
+              "doFirst": true,
+              "doFirstRank": 30
             },
             {
               "id": "electrical-review-aluminum-wiring",
               "title": "Review aluminum wiring safety plan",
               "priority": "critical",
-              "type": "contractor",
+              "type": "DIY",
               "status": "open",
               "completedOn": ""
             },
