@@ -28,12 +28,11 @@
       "tasks": [
         {
           "id": "outside-replace-mailbox",
-          "title": "Replace mailbox (HOA violation)",
+          "title": "Replace mailbox",
           "priority": "critical",
           "type": "DIY",
-          "status": "open",
-          "completedOn": "",
-          "doFirst": true,
+          "status": "done",
+          "completedOn": "2026-05-07",
           "doFirstRank": 35
         },
         {
@@ -220,7 +219,7 @@
               "id": "bedroom-3-door-alignment",
               "title": "Fix door alignment",
               "priority": "complete",
-              "type": "done",
+              "type": "DIY",
               "status": "done",
               "completedOn": "2026-05-04"
             }
@@ -345,7 +344,7 @@
               "id": "laundry-install-washer",
               "title": "Install washer",
               "priority": "complete",
-              "type": "done",
+              "type": "DIY",
               "status": "done",
               "completedOn": "2026-05-06"
             }
