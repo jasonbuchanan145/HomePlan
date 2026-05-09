@@ -392,6 +392,11 @@
       color: var(--done);
     }
 
+    .badge.in-progress {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
     .task-list,
     .focus-list {
       display: grid;
@@ -418,6 +423,70 @@
       margin: 0;
       color: var(--muted);
       font-size: 0.84rem;
+    }
+
+    .task-progress {
+      display: grid;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .task-progress-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .task-progress-track {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e6d9c6;
+    }
+
+    .task-progress-bar {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), #89a84f);
+    }
+
+    .task-detail-section {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .task-detail-title {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .detail-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .detail-list strong {
+      color: var(--ink);
+      font-weight: 760;
     }
 
     .progress-track {
@@ -474,7 +543,7 @@
 
     .task-table {
       width: 100%;
-      min-width: 720px;
+      min-width: 920px;
       border-collapse: collapse;
       font-size: 0.9rem;
     }
@@ -733,6 +802,8 @@
               <th scope="col"><button class="sort-button" type="button" data-sort-key="priority">Priority <span class="sort-indicator" data-sort-indicator="priority"></span></button></th>
               <th scope="col"><button class="sort-button" type="button" data-sort-key="type">Type <span class="sort-indicator" data-sort-indicator="type"></span></button></th>
               <th scope="col"><button class="sort-button" type="button" data-sort-key="status">Status <span class="sort-indicator" data-sort-indicator="status"></span></button></th>
+              <th scope="col"><button class="sort-button" type="button" data-sort-key="percentComplete">Progress <span class="sort-indicator" data-sort-indicator="percentComplete"></span></button></th>
+              <th scope="col"><button class="sort-button" type="button" data-sort-key="dateStarted">Started <span class="sort-indicator" data-sort-indicator="dateStarted"></span></button></th>
               <th scope="col"><button class="sort-button" type="button" data-sort-key="completedOn">Completed <span class="sort-indicator" data-sort-indicator="completedOn"></span></button></th>
             </tr>
           </thead>
@@ -744,32 +815,8 @@
 
   <script>
     const dashboardData = {
-      taskGroups: {
-        wholeHouse: {
-          label: "Whole House",
-          description: "Projects that cut across multiple rooms.",
-          tasks: [
-            { id: "whole-repaint-interior", title: "Repaint interior room by room", priority: "later", type: "DIY", status: "open", completedOn: "" },
-            { id: "whole-fix-interior-doors", title: "Fix interior doors that do not close correctly", priority: "important", type: "DIY", status: "open", completedOn: "" }
-          ]
-        },
-        outside: {
-          label: "Outside",
-          description: "Exterior projects that are not specific to the patio.",
-          tasks: [
-            { id: "outside-replace-mailbox", title: "Replace mailbox (HOA violation)", priority: "critical", type: "DIY", status: "open", completedOn: "", doFirst: true, doFirstRank: 35 },
-            { id: "outside-repair-light-post", title: "Repair rusted outdoor light post", priority: "important", type: "DIY", status: "open", completedOn: "" },
-            { id: "outside-pressure-wash-house", title: "Pressure wash house", priority: "important", type: "DIY", status: "open", completedOn: "" },
-            { id: "outside-buy-pressure-washer", title: "Buy a pressure washer off Facebook Marketplace", priority: "important", type: "DIY", status: "open", completedOn: "", doFirst: true, doFirstRank: 60 }
-          ]
-        }
-      },
-      roomTaskSets: {
-        stairs: [
-          { id: "stairs-secure-banister", title: "Replace or professionally secure broken stair banister", priority: "critical", type: "DIY", status: "open", completedOn: "", doFirst: true, doFirstRank: 10 },
-          { id: "stairs-transition-safety-check", title: "Check stair transition and safety", priority: "important", type: "DIY", status: "open", completedOn: "" }
-        ]
-      },
+      taskGroups: {},
+      roomTaskSets: {},
       floors: {
         top: {
           label: "Top Floor",
@@ -779,17 +826,13 @@
               id: "top-bedroom-1",
               name: "Bedroom 1",
               className: "top-bedroom-1",
-              tasks: [
-                { id: "bedroom-1-door-alignment", title: "Fix door alignment", priority: "important", type: "DIY", status: "open", completedOn: "" }
-              ]
+              tasks: []
             },
             {
               id: "top-bedroom-2",
               name: "Bedroom 2",
               className: "top-bedroom-2",
-              tasks: [
-                { id: "bedroom-2-door-alignment", title: "Fix door alignment", priority: "important", type: "DIY", status: "open", completedOn: "" }
-              ]
+              tasks: []
             },
             {
               id: "top-stairs",
@@ -803,26 +846,19 @@
               id: "top-living-room",
               name: "Living Room",
               className: "top-living-room",
-              tasks: [
-                { id: "living-room-attic-sounds", title: "Investigate sounds in attic", priority: "critical", type: "contractor", status: "open", completedOn: "", doFirst: true, doFirstRank: 20 }
-              ]
+              tasks: []
             },
             {
               id: "top-dining-room",
               name: "Dining Room",
               className: "top-dining-room",
-              tasks: [
-                
-              ]
+              tasks: []
             },
             {
               id: "top-kitchen",
               name: "Kitchen",
               className: "top-kitchen",
-              tasks: [
-                { id: "kitchen-pantry-storage", title: "Add kitchen pantry/storage", priority: "important", type: "DIY", status: "open", completedOn: "" },
-                { id: "kitchen-oven-installed", title: "Oven installed and verified working", priority: "complete", type: "done", status: "done", completedOn: "2026-05-06" }
-              ]
+              tasks: []
             },
             {
               id: "top-bathroom",
@@ -830,20 +866,13 @@
               mapLabel: "Bath",
               className: "top-bathroom",
               compact: true,
-              tasks: [
-                { id: "bathroom-install-vent", title: "Install upstairs bathroom vent", priority: "critical", type: "contractor", status: "open", completedOn: "", doFirst: true, doFirstRank: 40 },
-                { id: "bathroom-replace-vanity", title: "Replace bathroom vanity", priority: "important", type: "DIY", status: "open", completedOn: "" },
-                { id: "bathroom-replace-toilet", title: "Replace bathroom toilet", priority: "important", type: "DIY", status: "open", completedOn: "" },
-                { id: "bathroom-recaulk-tub", title: "Recaulk tub", priority: "important", type: "DIY", status: "open", completedOn: "" }
-              ]
+              tasks: []
             },
             {
               id: "top-bedroom-3",
               name: "Bedroom 3",
               className: "top-bedroom-3",
-              tasks: [
-                { id: "bedroom-3-door-alignment", title: "Fix door alignment", priority: "complete", type: "done", status: "done", completedOn: "2026-05-04" }
-              ]
+              tasks: []
             },
             {
               id: "top-hall-closet",
@@ -851,17 +880,13 @@
               mapLabel: "Closet",
               className: "top-hall-closet",
               compact: true,
-              tasks: [
-                { id: "hall-closet-fix-rack-support", title: "Fix rack support beam", priority: "important", type: "DIY", status: "open", completedOn: "" }
-              ]
+              tasks: []
             },
             {
               id: "top-back-patio",
               name: "Back Patio",
               className: "top-back-patio",
-              tasks: [
-                { id: "patio-fix-screen-door", title: "Fix patio screen door", priority: "important", type: "DIY", status: "open", completedOn: "", doFirst: true, doFirstRank: 50 }
-              ]
+              tasks: []
             }
           ]
         },
@@ -873,9 +898,7 @@
               id: "bottom-garage",
               name: "Garage",
               className: "bottom-garage",
-              tasks: [
-                { id: "garage-inspect-pest-entry", title: "Inspect possible pest entry points", priority: "important", type: "DIY", status: "open", completedOn: "" }
-              ]
+              tasks: []
             },
             {
               id: "bottom-stairs",
@@ -889,10 +912,7 @@
               id: "bottom-family-room-office",
               name: "Family Room / Office",
               className: "bottom-family-room-office",
-              tasks: [
-                { id: "basement-evaluate-wood-walls", title: "Evaluate basement wood walls before drywalling", priority: "later", type: "DIY", status: "open", completedOn: "" },
-                { id: "basement-drywall-project", title: "Basement drywall project later", priority: "later", type: "DIY", status: "open", completedOn: "" }
-              ]
+              tasks: []
             },
             {
               id: "bottom-downstairs-bathroom",
@@ -904,11 +924,7 @@
               id: "bottom-laundry-electrical-storage",
               name: "Laundry / Electrical / Storage",
               className: "bottom-laundry-electrical-storage",
-              tasks: [
-                { id: "electrical-schedule-assessment", title: "Schedule electrician to assess old panel/service and aluminum wiring", priority: "critical", type: "contractor", status: "open", completedOn: "", doFirst: true, doFirstRank: 30 },
-                { id: "electrical-review-aluminum-wiring", title: "Review aluminum wiring safety plan", priority: "critical", type: "DIY", status: "open", completedOn: "" },
-                { id: "laundry-install-washer", title: "Install washer", priority: "complete", type: "done", status: "done", completedOn: "2026-05-06" }
-              ]
+              tasks: []
             }
           ]
         }
@@ -1000,12 +1016,14 @@
 
     function sortValue(task, key) {
       const priorityRank = { critical: 1, important: 2, later: 3, complete: 4 };
-      const statusRank = { open: 1, done: 2 };
+      const statusRank = { "in-progress": 1, open: 2, done: 3 };
       const typeRank = { contractor: 1, DIY: 2, done: 3 };
 
       if (key === "priority") return priorityRank[task.priority] || 99;
       if (key === "status") return statusRank[task.status] || 99;
       if (key === "type") return typeRank[task.type] || 99;
+      if (key === "percentComplete") return task.percentComplete ?? (task.status === "done" ? 100 : 0);
+      if (key === "dateStarted") return task.dateStarted || "9999-12-31";
       if (key === "completedOn") return task.completedOn || "9999-12-31";
       return String(task[key] || "").toLowerCase();
     }
@@ -1034,6 +1052,7 @@
 
     function badgeClass(task) {
       if (task.status === "done") return "done";
+      if (task.status === "in-progress") return "in-progress";
       if (task.priority === "critical") return "urgent";
       if (task.priority === "later") return "later";
       if (task.type === "contractor") return "contractor";
@@ -1042,10 +1061,75 @@
 
     function badgeLabel(task) {
       if (task.status === "done") return "done";
+      if (task.status === "in-progress") return "in progress";
       if (task.priority === "critical") return "urgent";
       if (task.priority === "later") return "later";
       if (task.type === "contractor") return "contractor";
       return "DIY";
+    }
+
+    function statusLabel(task) {
+      if (task.status === "done") return "Done";
+      if (task.status === "in-progress") return "In Progress";
+      return "Open";
+    }
+
+    function taskPercent(task) {
+      if (Number.isFinite(task.percentComplete)) return task.percentComplete;
+      return task.status === "done" ? 100 : 0;
+    }
+
+    function progressMarkup(task) {
+      const percent = taskPercent(task);
+      if (!percent && task.status !== "in-progress") return "";
+
+      return `
+        <div class="task-progress">
+          <div class="task-progress-label">
+            <span>Progress</span>
+            <span>${percent}%</span>
+          </div>
+          <div class="task-progress-track" aria-hidden="true">
+            <div class="task-progress-bar" style="width: ${percent}%"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function subtasksMarkup(task) {
+      if (!task.subtasks?.length) return "";
+
+      return `
+        <div class="task-detail-section">
+          <p class="task-detail-title">Subtasks</p>
+          <ul class="detail-list">
+            ${task.subtasks.map((subtask) => `
+              <li>
+                <strong>${subtask.title}</strong>
+                <span>${statusLabel(subtask)}${Number.isFinite(subtask.percentComplete) ? ` · ${subtask.percentComplete}%` : ""}${subtask.dateStarted ? ` · Started ${formatDate(subtask.dateStarted)}` : ""}</span>
+              </li>
+            `).join("")}
+          </ul>
+        </div>
+      `;
+    }
+
+    function itemsNeededMarkup(task) {
+      if (!task.itemsNeeded?.length) return "";
+
+      return `
+        <div class="task-detail-section">
+          <p class="task-detail-title">Items Needed</p>
+          <ul class="detail-list">
+            ${task.itemsNeeded.map((item) => `
+              <li>
+                <strong>${item.name}</strong>
+                <span>${item.status || "needed"}</span>
+              </li>
+            `).join("")}
+          </ul>
+        </div>
+      `;
     }
 
     function roomBadges(room) {
@@ -1126,7 +1210,11 @@
           <div class="task-badges">
             ${taskBadges(task).map((badge) => `<span class="badge ${badge.className}">${badge.label}</span>`).join("")}
           </div>
+          ${task.dateStarted ? `<p class="task-meta" style="margin-top: 8px;">Started ${formatDate(task.dateStarted)}</p>` : ""}
           ${task.completedOn ? `<p class="task-meta" style="margin-top: 8px;">Completed ${formatDate(task.completedOn)}</p>` : ""}
+          ${progressMarkup(task)}
+          ${subtasksMarkup(task)}
+          ${itemsNeededMarkup(task)}
         `;
         roomTasks.appendChild(item);
       });
@@ -1185,7 +1273,9 @@
           <td>${task.area}</td>
           <td><span class="badge ${badgeClass(task)}">${badgeLabel(task)}</span></td>
           <td>${task.type}</td>
-          <td>${task.status === "done" ? "Done" : "Open"}</td>
+          <td>${statusLabel(task)}</td>
+          <td>${taskPercent(task)}%</td>
+          <td>${formatDate(task.dateStarted)}</td>
           <td>${formatDate(task.completedOn)}</td>
         `;
 
@@ -1297,11 +1387,14 @@
     async function initDashboard() {
       try {
         const response = await fetch("tasks.json", { cache: "no-store" });
-        if (response.ok) {
-          applyExternalTaskData(await response.json());
+        if (!response.ok) {
+          throw new Error("Could not load tasks.json");
         }
+        applyExternalTaskData(await response.json());
       } catch (error) {
-        // Opening index.html directly from disk can block fetch; keep the inline data as a fallback.
+        roomTasks.innerHTML = `<li class="empty-note">Task data could not be loaded. Use GitHub Pages or a local static server so tasks.json can be fetched.</li>`;
+        focusList.innerHTML = "";
+        return;
       }
 
       renderDashboard();
