@@ -4,13 +4,13 @@ A static GitHub Pages dashboard for tracking home repairs room by room with no e
 
 ## Local use
 
-Run a small static server from the repository root, then open the local URL. The dashboard loads task data from `tasks.json`, so opening `index.html` directly from disk may be blocked by the browser.
+Run the static site through Podman/Nginx from the repository root, then open the local URL. The dashboard loads task data from `tasks.json`, so opening `index.html` directly from disk may be blocked by the browser.
 
 ```powershell
-python -m http.server 8000
+.\scripts\serve.ps1
 ```
 
-Then visit `http://localhost:8000`.
+Then visit `http://localhost:8080`.
 
 ## Task data
 
