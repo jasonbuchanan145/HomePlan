@@ -56,8 +56,37 @@
           "title": "Pressure wash house",
           "priority": "important",
           "type": "DIY",
-          "status": "open",
-          "completedOn": ""
+          "status": "in-progress",
+          "dateStarted": "2026-05-09",
+          "percentComplete": 25,
+          "completedOn": "",
+          "subtasks": [
+            {
+              "id": "pressure-wash-left-side",
+              "title": "Pressure wash left side",
+              "status": "open",
+              "percentComplete": 0
+            },
+            {
+              "id": "pressure-wash-right-side",
+              "title": "Pressure wash right side",
+              "status": "in-progress",
+              "dateStarted": "2026-05-09",
+              "percentComplete": 50
+            },
+            {
+              "id": "pressure-wash-front",
+              "title": "Pressure wash front",
+              "status": "open",
+              "percentComplete": 0
+            },
+            {
+              "id": "pressure-wash-back",
+              "title": "Pressure wash back",
+              "status": "open",
+              "percentComplete": 0
+            }
+          ]
         },
         {
           "id": "outside-buy-pressure-washer",
@@ -298,10 +327,53 @@
             {
               "id": "basement-office-doorframe-and-drywall",
               "title": "Install a new door frame, drywall, etc at entrance to family room",
-              "priority": "Important",
+              "priority": "important",
               "type": "DIY",
               "status": "open",
-              "completedOn": ""
+              "percentComplete": 0,
+              "completedOn": "",
+              "itemsNeeded": [
+                {
+                  "name": "Interior door or prehung door",
+                  "status": "needed"
+                },
+                {
+                  "name": "Door frame or jamb kit",
+                  "status": "needed"
+                },
+                {
+                  "name": "Shims",
+                  "status": "needed"
+                },
+                {
+                  "name": "Drywall",
+                  "status": "needed"
+                },
+                {
+                  "name": "Drywall tape and joint compound",
+                  "status": "needed"
+                },
+                {
+                  "name": "Trim or casing",
+                  "status": "needed"
+                },
+                {
+                  "name": "Door hinges",
+                  "status": "needed"
+                },
+                {
+                  "name": "Door handle and latch set",
+                  "status": "needed"
+                },
+                {
+                  "name": "Wood screws or finish nails",
+                  "status": "needed"
+                },
+                {
+                  "name": "Primer and paint",
+                  "status": "needed"
+                }
+              ]
             },
             {
               "id": "basement-drywall-project",
