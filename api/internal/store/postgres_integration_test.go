@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -32,9 +33,7 @@ func TestPostgresStoreAnonymousSaveLoad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load house: %v", err)
 	}
-	if string(state) != integrationState {
-		t.Fatalf("unexpected state: %s", state)
-	}
+	assertJSONEqual(t, integrationState, state)
 }
 
 func TestPostgresStoreDevSeedAndReset(t *testing.T) {
@@ -49,9 +48,7 @@ func TestPostgresStoreDevSeedAndReset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load dev house: %v", err)
 	}
-	if string(state) != integrationState {
-		t.Fatalf("unexpected state: %s", state)
-	}
+	assertJSONEqual(t, integrationState, state)
 
 	assertCount(t, db, "users", 1)
 	assertCount(t, db, "houses", 1)
@@ -137,5 +134,32 @@ func assertCount(t *testing.T, db *sql.DB, table string, expected int) {
 	}
 	if actual != expected {
 		t.Fatalf("expected %s count %d, got %d", table, expected, actual)
+	}
+}
+
+func assertJSONEqual(t *testing.T, expected string, actual []byte) {
+	t.Helper()
+
+	var expectedValue any
+	if err := json.Unmarshal([]byte(expected), &expectedValue); err != nil {
+		t.Fatalf("unmarshal expected json: %v", err)
+	}
+
+	var actualValue any
+	if err := json.Unmarshal(actual, &actualValue); err != nil {
+		t.Fatalf("unmarshal actual json: %v", err)
+	}
+
+	expectedCanonical, err := json.Marshal(expectedValue)
+	if err != nil {
+		t.Fatalf("marshal expected json: %v", err)
+	}
+	actualCanonical, err := json.Marshal(actualValue)
+	if err != nil {
+		t.Fatalf("marshal actual json: %v", err)
+	}
+
+	if string(expectedCanonical) != string(actualCanonical) {
+		t.Fatalf("json mismatch\nexpected: %s\nactual:   %s", expectedCanonical, actualCanonical)
 	}
 }
