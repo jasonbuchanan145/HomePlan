@@ -1,9 +1,0 @@
-node_modules/
-dist/
-.vite/
-coverage/
-*.log
-api/homeplan-api.exe
-api/homeplan-api
-api/.gocache/
-api/.gomodcache/
