@@ -1,0 +1,13 @@
+FROM docker.io/library/golang:1.23-alpine AS build
+WORKDIR /src
+COPY api/go.mod ./
+RUN go mod download
+COPY api ./
+RUN go build -o /out/homeplan-api ./cmd/homeplan-api
+
+FROM docker.io/library/alpine:3.21
+RUN adduser -D -H homeplan
+USER homeplan
+COPY --from=build /out/homeplan-api /usr/local/bin/homeplan-api
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/homeplan-api"]

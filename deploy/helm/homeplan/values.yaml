@@ -1,0 +1,27 @@
+images:
+  web: localhost/homeplan-web:dev
+  api: localhost/homeplan-api:dev
+  postgres: docker.io/library/postgres:16-alpine
+
+rolloutToken: dev
+
+web:
+  replicas: 1
+  service:
+    port: 80
+
+api:
+  replicas: 1
+  service:
+    port: 8080
+  sessionCookieName: homeplan_session
+  devMode: true
+
+postgres:
+  database: homeplan
+  user: homeplan
+  password: homeplan-dev-password
+  storage: 1Gi
+
+ingress:
+  enabled: false
