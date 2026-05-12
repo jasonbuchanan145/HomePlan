@@ -19,7 +19,7 @@ const taskFilter = ref("rooms");
 const viewMode = ref<ViewMode>("plan");
 const sortKey = ref<SortKey>("priority");
 const sortDirection = ref<SortDirection>("asc");
-const dataSource = ref<"api" | "seed">("seed");
+const dataSource = ref<"api" | "empty">("empty");
 const saveState = ref<"idle" | "saving" | "saved" | "error">("idle");
 
 const currentFloor = computed(() => house.value?.floors[activeFloor.value]);
@@ -74,11 +74,19 @@ const progress = computed(() => {
 const nextFocus = computed(() => focusTasks.value[0]?.area || "Stairs");
 
 onMounted(async () => {
-  const response = await loadCurrentHouse();
-  house.value = response.house;
-  dataSource.value = response.source;
-  activeFloor.value = "top";
-  selectedRoomId.value = response.house.floors.top?.defaultRoom ?? Object.values(response.house.floors)[0]?.defaultRoom ?? "";
+  try {
+    const response = await loadCurrentHouse();
+    house.value = response.house;
+    dataSource.value = response.source;
+    if (response.house) {
+      activeFloor.value = "top";
+      selectedRoomId.value = response.house.floors.top?.defaultRoom ?? Object.values(response.house.floors)[0]?.defaultRoom ?? "";
+    }
+  } catch {
+    house.value = null;
+    dataSource.value = "empty";
+    saveState.value = "error";
+  }
 });
 
 function selectFloor(floorKey: string) {
@@ -137,7 +145,7 @@ async function saveHouse() {
       <div class="hero-side">
         <p class="hero-copy">A glanceable plan for the urgent fixes, contractor calls, DIY projects, and slower room refresh work ahead.</p>
         <div class="sync-row">
-          <span class="sync-pill">{{ dataSource === "api" ? "Cloud session" : "Seed data" }}</span>
+          <span class="sync-pill">{{ dataSource === "api" ? "Cloud session" : "No house" }}</span>
           <button class="save-button" type="button" :disabled="!house || saveState === 'saving'" @click="saveHouse">
             {{ saveState === "saving" ? "Saving" : saveState === "saved" ? "Saved" : "Save" }}
           </button>
@@ -145,7 +153,20 @@ async function saveHouse() {
       </div>
     </section>
 
-    <p v-if="!house" class="empty-note">Loading HomePlan...</p>
+    <section v-if="!house" class="panel empty-state" aria-labelledby="empty-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="empty-title">No house loaded</h2>
+          <p>Run the local seed script to create the deterministic user 1 demo house for testing.</p>
+        </div>
+      </div>
+      <div class="progress-grid">
+        <div class="progress-stat"><strong>0</strong><span>Open</span></div>
+        <div class="progress-stat"><strong>0</strong><span>Critical</span></div>
+        <div class="progress-stat"><strong>0</strong><span>Contractor</span></div>
+        <div class="progress-stat"><strong>0</strong><span>Total</span></div>
+      </div>
+    </section>
 
     <template v-else>
       <SummaryCards :done-count="progress.done" :next-focus="nextFocus" />

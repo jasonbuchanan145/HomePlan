@@ -612,6 +612,10 @@ h1 {
   color: var(--urgent);
 }
 
+.empty-state {
+  margin-top: 12px;
+}
+
 @media (min-width: 760px) {
   .app {
     padding: 30px 24px 52px;

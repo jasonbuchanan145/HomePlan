@@ -13,6 +13,7 @@ type MemoryStore struct {
 	mu       sync.RWMutex
 	sessions map[string]time.Time
 	states   map[string]json.RawMessage
+	devState json.RawMessage
 }
 
 func NewMemoryStore() *MemoryStore {
@@ -43,5 +44,28 @@ func (s *MemoryStore) SaveCurrentHouse(_ context.Context, sessionToken string, s
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.states[sessionToken] = append(json.RawMessage(nil), state...)
+	return nil
+}
+
+func (s *MemoryStore) LoadDevUserHouse(_ context.Context) (json.RawMessage, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if len(s.devState) == 0 {
+		return nil, house.ErrNotFound
+	}
+	return append(json.RawMessage(nil), s.devState...), nil
+}
+
+func (s *MemoryStore) SaveDevUserHouse(_ context.Context, state json.RawMessage) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.devState = append(json.RawMessage(nil), state...)
+	return nil
+}
+
+func (s *MemoryStore) ResetDevUserHouse(_ context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.devState = nil
 	return nil
 }

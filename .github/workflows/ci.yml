@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "codex/**"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  api-and-helm:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: docker.io/library/postgres:16-alpine
+        env:
+          POSTGRES_DB: homeplan_test
+          POSTGRES_USER: homeplan
+          POSTGRES_PASSWORD: homeplan-test-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U homeplan -d homeplan_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      HOMEPLAN_TEST_DATABASE_URL: postgres://homeplan:homeplan-test-password@localhost:5432/homeplan_test?sslmode=disable
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+          cache-dependency-path: api/go.sum
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Go tests
+        working-directory: api
+        run: go test ./...
+
+      - name: Helm lint
+        run: helm lint deploy/helm/homeplan
+
+      - name: Helm template
+        run: helm template homeplan deploy/helm/homeplan >/dev/null
+
+      - name: PowerShell script parse checks
+        shell: pwsh
+        run: |
+          [scriptblock]::Create((Get-Content -Raw scripts/run-minikube.ps1)) | Out-Null
+          [scriptblock]::Create((Get-Content -Raw scripts/seed-dev-house.ps1)) | Out-Null

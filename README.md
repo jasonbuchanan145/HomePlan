@@ -22,6 +22,18 @@ Minikube is the preferred fullstack local workflow.
 
 Then visit `http://localhost:8080`.
 
+The app starts with no house in local dev mode. Seed the deterministic user 1 demo house with:
+
+```powershell
+.\scripts\seed-dev-house.ps1
+```
+
+Reset and reseed it with:
+
+```powershell
+.\scripts\seed-dev-house.ps1 -Reset
+```
+
 Optional parameters:
 
 ```powershell

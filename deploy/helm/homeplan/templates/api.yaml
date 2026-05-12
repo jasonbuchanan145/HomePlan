@@ -11,6 +11,8 @@ spec:
     metadata:
       labels:
         app: homeplan-api
+      annotations:
+        homeplan.dev/rollout-token: {{ .Values.rolloutToken | quote }}
     spec:
       containers:
         - name: api
@@ -23,11 +25,19 @@ spec:
               value: "8080"
             - name: SESSION_COOKIE_NAME
               value: {{ .Values.api.sessionCookieName | quote }}
+            - name: HOMEPLAN_DEV_MODE
+              value: {{ .Values.api.devMode | quote }}
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: homeplan-postgres
                   key: DATABASE_URL
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            failureThreshold: 24
+            periodSeconds: 5
           readinessProbe:
             httpGet:
               path: /healthz

@@ -11,6 +11,8 @@ spec:
     metadata:
       labels:
         app: homeplan-web
+      annotations:
+        homeplan.dev/rollout-token: {{ .Values.rolloutToken | quote }}
     spec:
       containers:
         - name: web
