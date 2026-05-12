@@ -4,7 +4,7 @@ $imageName = "homeplan-local"
 $containerName = "homeplan-local"
 $hostPort = "8080"
 
-podman build -t $imageName -f web/Containerfile .
+podman build -t $imageName -f Containerfile .
 
 $existing = podman ps -a --format "{{.Names}}" | Where-Object { $_ -eq $containerName }
 if ($existing) {
