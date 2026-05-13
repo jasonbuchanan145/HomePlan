@@ -1,7 +1,11 @@
-import type { HouseState, Room, Task, TaskStatus, TaskWithContext } from "../types/house";
+import type { HouseState, Room, Task, TaskPriority, TaskStatus, TaskType, TaskWithContext } from "../types/house";
 
 export type SortDirection = "asc" | "desc";
 export type SortKey = "title" | "area" | "priority" | "type" | "status" | "percentComplete" | "dateStarted" | "completedOn";
+
+export const TASK_STATUSES: TaskStatus[] = ["open", "in-progress", "blocked", "done"];
+export const TASK_PRIORITIES: TaskPriority[] = ["critical", "important", "later", "complete"];
+export const TASK_TYPES: TaskType[] = ["DIY", "contractor", "done"];
 
 export function getRoomTasks(house: HouseState, room: Room): Task[] {
   return room.sharedTaskSet ? house.roomTaskSets[room.sharedTaskSet] ?? [] : room.tasks ?? [];
@@ -32,8 +36,20 @@ export function allTasks(house: HouseState): TaskWithContext[] {
     }))
   );
 
+  const unplacedTasks = (house.unplacedRooms ?? []).flatMap((room) =>
+    (room.tasks ?? []).map((task) => ({
+      ...task,
+      area: room.name,
+      floor: "Unplaced",
+      floorKey: "",
+      roomId: room.id,
+      groupKey: "",
+      isUnplaced: true
+    }))
+  );
+
   const uniqueTasks = new Map<string, TaskWithContext>();
-  [...roomTasks, ...groupTasks].forEach((task) => {
+  [...roomTasks, ...groupTasks, ...unplacedTasks].forEach((task) => {
     if (!uniqueTasks.has(task.id)) {
       uniqueTasks.set(task.id, task);
       return;
@@ -62,8 +78,14 @@ export function statusLabel(task: { status: TaskStatus }): string {
 }
 
 export function taskPercent(task: Task): number {
+  if (task.status !== "in-progress") return 0;
   if (Number.isFinite(task.percentComplete)) return task.percentComplete ?? 0;
-  return task.status === "done" ? 100 : 0;
+  return 0;
+}
+
+export function clampTaskPercent(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 export function badgeClass(task: Task): string {
@@ -129,4 +151,85 @@ export function sortedTasks(tasks: TaskWithContext[], key: SortKey, direction: S
     if (aValue > bValue) return 1 * multiplier;
     return a.title.localeCompare(b.title);
   });
+}
+
+export function updateHouseTask(house: HouseState, taskId: string, updateTask: (task: Task) => Task): HouseState {
+  const updateTasks = (taskList?: Task[]): Task[] | undefined => {
+    if (!taskList) return taskList;
+    let changed = false;
+    const nextTasks = taskList.map((task) => {
+      if (task.id !== taskId) return task;
+      changed = true;
+      return updateTask(task);
+    });
+    return changed ? nextTasks : taskList;
+  };
+
+  return {
+    ...house,
+    taskGroups: Object.fromEntries(
+      Object.entries(house.taskGroups).map(([groupKey, group]) => [
+        groupKey,
+        {
+          ...group,
+          tasks: updateTasks(group.tasks) ?? []
+        }
+      ])
+    ),
+    roomTaskSets: Object.fromEntries(
+      Object.entries(house.roomTaskSets).map(([setKey, taskList]) => [setKey, updateTasks(taskList) ?? []])
+    ),
+    floors: Object.fromEntries(
+      Object.entries(house.floors).map(([floorKey, floor]) => [
+        floorKey,
+        {
+          ...floor,
+          rooms: floor.rooms.map((room) => ({
+            ...room,
+            tasks: updateTasks(room.tasks)
+          }))
+        }
+      ])
+    ),
+    unplacedRooms: house.unplacedRooms?.map((room) => ({
+      ...room,
+      tasks: updateTasks(room.tasks)
+    }))
+  };
+}
+
+export function deleteHouseTask(house: HouseState, taskId: string): HouseState {
+  const deleteTasks = (taskList?: Task[]): Task[] | undefined => taskList?.filter((task) => task.id !== taskId);
+
+  return {
+    ...house,
+    taskGroups: Object.fromEntries(
+      Object.entries(house.taskGroups).map(([groupKey, group]) => [
+        groupKey,
+        {
+          ...group,
+          tasks: deleteTasks(group.tasks) ?? []
+        }
+      ])
+    ),
+    roomTaskSets: Object.fromEntries(
+      Object.entries(house.roomTaskSets).map(([setKey, taskList]) => [setKey, deleteTasks(taskList) ?? []])
+    ),
+    floors: Object.fromEntries(
+      Object.entries(house.floors).map(([floorKey, floor]) => [
+        floorKey,
+        {
+          ...floor,
+          rooms: floor.rooms.map((room) => ({
+            ...room,
+            tasks: deleteTasks(room.tasks)
+          }))
+        }
+      ])
+    ),
+    unplacedRooms: house.unplacedRooms?.map((room) => ({
+      ...room,
+      tasks: deleteTasks(room.tasks)
+    }))
+  };
 }

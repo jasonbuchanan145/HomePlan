@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
+    "interactjs": "^1.10.27",
     "vite": "^6.3.5",
     "vue": "^3.5.13"
   },

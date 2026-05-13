@@ -1,11 +1,30 @@
 <script setup lang="ts">
-import type { Task } from "../types/house";
-import { formatDate, statusLabel, taskBadges, taskPercent } from "../utils/house";
+import TaskEditor from "./TaskEditor.vue";
+import type { ItemNeeded, Subtask, Task, TaskPriority, TaskStatus, TaskType } from "../types/house";
 
 defineProps<{
   title: string;
   subtitle: string;
   tasks: Task[];
+}>();
+
+defineEmits<{
+  addTask: [];
+  updateTaskTitle: [taskId: string, title: string];
+  updateTaskPriority: [taskId: string, priority: TaskPriority];
+  updateTaskType: [taskId: string, type: TaskType];
+  updateTaskStatus: [taskId: string, status: TaskStatus];
+  updateTaskProgress: [taskId: string, percentComplete: number];
+  updateTaskCompletedOn: [taskId: string, completedOn: string];
+  updateTaskDoFirst: [taskId: string, doFirst: boolean];
+  updateTaskDoFirstRank: [taskId: string, rank: number | undefined];
+  deleteTask: [taskId: string];
+  addSubtask: [taskId: string];
+  updateSubtask: [taskId: string, subtaskId: string, update: Partial<Subtask>];
+  deleteSubtask: [taskId: string, subtaskId: string];
+  addItem: [taskId: string];
+  updateItem: [taskId: string, itemIndex: number, update: Partial<ItemNeeded>];
+  deleteItem: [taskId: string, itemIndex: number];
 }>();
 </script>
 
@@ -16,48 +35,30 @@ defineProps<{
         <h2 id="selected-room-title">{{ title }}</h2>
         <p>{{ subtitle }}</p>
       </div>
+      <button class="text-button" type="button" @click="$emit('addTask')">Add Task</button>
     </div>
     <ul class="task-list">
       <li v-if="!tasks.length" class="empty-note">No tasks yet.</li>
       <template v-else>
-        <li v-for="task in tasks" :key="task.id" class="task-item">
-          <p class="task-title">{{ task.title }}</p>
-          <div class="task-badges">
-            <span v-for="badge in taskBadges(task)" :key="`${task.id}-${badge.className}`" class="badge" :class="badge.className">
-              {{ badge.label }}
-            </span>
-          </div>
-          <p v-if="task.dateStarted" class="task-meta task-date">Started {{ formatDate(task.dateStarted) }}</p>
-          <p v-if="task.completedOn" class="task-meta task-date">Completed {{ formatDate(task.completedOn) }}</p>
-          <div v-if="taskPercent(task) || task.status === 'in-progress'" class="task-progress">
-            <div class="task-progress-label">
-              <span>Progress</span>
-              <span>{{ taskPercent(task) }}%</span>
-            </div>
-            <div class="task-progress-track" aria-hidden="true">
-              <div class="task-progress-bar" :style="{ width: `${taskPercent(task)}%` }"></div>
-            </div>
-          </div>
-          <div v-if="task.subtasks?.length" class="task-detail-section">
-            <p class="task-detail-title">Subtasks</p>
-            <ul class="detail-list">
-              <li v-for="subtask in task.subtasks" :key="subtask.id">
-                <strong>{{ subtask.title }}</strong>
-                <span>
-                  {{ statusLabel(subtask) }}{{ Number.isFinite(subtask.percentComplete) ? ` · ${subtask.percentComplete}%` : "" }}{{ subtask.dateStarted ? ` · Started ${formatDate(subtask.dateStarted)}` : "" }}
-                </span>
-              </li>
-            </ul>
-          </div>
-          <div v-if="task.itemsNeeded?.length" class="task-detail-section">
-            <p class="task-detail-title">Items Needed</p>
-            <ul class="detail-list">
-              <li v-for="item in task.itemsNeeded" :key="item.name">
-                <strong>{{ item.name }}</strong>
-                <span>{{ item.status || "needed" }}</span>
-              </li>
-            </ul>
-          </div>
+        <li v-for="task in tasks" :key="task.id">
+          <TaskEditor
+            :task="task"
+            @update-task-title="(taskId, title) => $emit('updateTaskTitle', taskId, title)"
+            @update-task-priority="(taskId, priority) => $emit('updateTaskPriority', taskId, priority)"
+            @update-task-type="(taskId, type) => $emit('updateTaskType', taskId, type)"
+            @update-task-status="(taskId, status) => $emit('updateTaskStatus', taskId, status)"
+            @update-task-progress="(taskId, percentComplete) => $emit('updateTaskProgress', taskId, percentComplete)"
+            @update-task-completed-on="(taskId, completedOn) => $emit('updateTaskCompletedOn', taskId, completedOn)"
+            @update-task-do-first="(taskId, doFirst) => $emit('updateTaskDoFirst', taskId, doFirst)"
+            @update-task-do-first-rank="(taskId, rank) => $emit('updateTaskDoFirstRank', taskId, rank)"
+            @delete-task="(taskId) => $emit('deleteTask', taskId)"
+            @add-subtask="(taskId) => $emit('addSubtask', taskId)"
+            @update-subtask="(taskId, subtaskId, update) => $emit('updateSubtask', taskId, subtaskId, update)"
+            @delete-subtask="(taskId, subtaskId) => $emit('deleteSubtask', taskId, subtaskId)"
+            @add-item="(taskId) => $emit('addItem', taskId)"
+            @update-item="(taskId, itemIndex, update) => $emit('updateItem', taskId, itemIndex, update)"
+            @delete-item="(taskId, itemIndex) => $emit('deleteItem', taskId, itemIndex)"
+          />
         </li>
       </template>
     </ul>

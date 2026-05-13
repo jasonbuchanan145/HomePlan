@@ -77,6 +77,7 @@ export interface HouseState {
   taskGroups: Record<string, TaskGroup>;
   roomTaskSets: Record<string, Task[]>;
   floors: Record<string, Floor>;
+  unplacedRooms?: Room[];
 }
 
 export interface TaskWithContext extends Task {
@@ -85,4 +86,5 @@ export interface TaskWithContext extends Task {
   floorKey: string;
   roomId: string;
   groupKey: string;
+  isUnplaced?: boolean;
 }
