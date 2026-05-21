@@ -143,6 +143,7 @@ jobs:
             --set images.web="$WEB_IMAGE" \
             --set images.api="$API_IMAGE" \
             --set postgres.password="${{ secrets.HOMEPLAN_POSTGRES_PASSWORD }}" \
+            --take-ownership \
             --wait \
             --timeout 10m
 
