@@ -145,3 +145,22 @@ jobs:
             --set postgres.password="${{ secrets.HOMEPLAN_POSTGRES_PASSWORD }}" \
             --wait \
             --timeout 10m
+
+      - name: Verify HomePlan pods are healthy
+        run: |
+          set -euo pipefail
+
+          kubectl rollout status deployment/homeplan-api --namespace homeplan --timeout=5m
+          kubectl rollout status deployment/homeplan-web --namespace homeplan --timeout=5m
+
+          unhealthy_pods="$(kubectl get pods --namespace homeplan --selector 'app in (homeplan-api,homeplan-web)' --output jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .status.containerStatuses[*]}{.name}{":ready="}{.ready}{":waiting="}{.state.waiting.reason}{":terminated="}{.state.terminated.reason}{" "}{end}{"\n"}{end}' | awk '$0 ~ /ready=false|waiting=[A-Za-z]|terminated=[A-Za-z]/ { print }')"
+
+          if [ -n "$unhealthy_pods" ]; then
+            echo "HomePlan pods are not healthy:"
+            echo "$unhealthy_pods"
+            kubectl get pods --namespace homeplan --output wide
+            kubectl describe pods --namespace homeplan --selector 'app in (homeplan-api,homeplan-web)'
+            exit 1
+          fi
+
+          kubectl get pods --namespace homeplan --selector 'app in (homeplan-api,homeplan-web)' --output wide
