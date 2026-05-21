@@ -48,11 +48,119 @@ jobs:
       - name: Helm lint
         run: helm lint deploy/helm/homeplan
 
+      - name: Helm lint local values
+        run: helm lint deploy/helm/homeplan -f deploy/helm/homeplan/values-local.yaml
+
+      - name: Helm lint Rackspace values
+        run: helm lint deploy/helm/homeplan -f deploy/helm/homeplan/values-rackspace.yaml
+
       - name: Helm template
         run: helm template homeplan deploy/helm/homeplan >/dev/null
+
+      - name: Helm template local values
+        run: helm template homeplan deploy/helm/homeplan -f deploy/helm/homeplan/values-local.yaml >/dev/null
+
+      - name: Helm template Rackspace values
+        run: helm template homeplan deploy/helm/homeplan -f deploy/helm/homeplan/values-rackspace.yaml >/dev/null
 
       - name: PowerShell script parse checks
         shell: pwsh
         run: |
           [scriptblock]::Create((Get-Content -Raw scripts/run-minikube.ps1)) | Out-Null
           [scriptblock]::Create((Get-Content -Raw scripts/seed-dev-house.ps1)) | Out-Null
+
+  deploy-rackspace:
+    runs-on: ubuntu-latest
+    needs: api-and-helm
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/homeplan-web:${{ github.sha }}
+      API_IMAGE: ghcr.io/${{ github.repository_owner }}/homeplan-api:${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and push web image
+        id: build-web
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: homeplan-web
+          tags: ${{ github.sha }}
+          context: .
+          containerfiles: ./web/Containerfile
+
+      - name: Build and push API image
+        id: build-api
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: homeplan-api
+          tags: ${{ github.sha }}
+          context: .
+          containerfiles: ./api/Containerfile
+
+      - name: Push web image
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-web.outputs.image }}
+          tags: ${{ steps.build-web.outputs.tags }}
+          registry: ghcr.io/${{ github.repository_owner }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push API image
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-api.outputs.image }}
+          tags: ${{ steps.build-api.outputs.tags }}
+          registry: ghcr.io/${{ github.repository_owner }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Write kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          printf '%s' "${{ secrets.RACKSPACE_KUBECONFIG }}" > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Deploy HomePlan to Rackspace
+        run: |
+          helm upgrade --install homeplan ./deploy/helm/homeplan \
+            --namespace homeplan \
+            --create-namespace \
+            -f ./deploy/helm/homeplan/values-rackspace.yaml \
+            --set images.web="$WEB_IMAGE" \
+            --set images.api="$API_IMAGE" \
+            --set postgres.password="${{ secrets.HOMEPLAN_POSTGRES_PASSWORD }}" \
+            --wait \
+            --timeout 10m
+
+      - name: Verify HomePlan pods are healthy
+        run: |
+          set -euo pipefail
+
+          kubectl rollout status deployment/homeplan-api --namespace homeplan --timeout=5m
+          kubectl rollout status deployment/homeplan-web --namespace homeplan --timeout=5m
+
+          unhealthy_pods="$(kubectl get pods --namespace homeplan --selector 'app in (homeplan-api,homeplan-web)' --output jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .status.containerStatuses[*]}{.name}{":ready="}{.ready}{":waiting="}{.state.waiting.reason}{":terminated="}{.state.terminated.reason}{" "}{end}{"\n"}{end}' | awk '$0 ~ /ready=false|waiting=[A-Za-z]|terminated=[A-Za-z]/ { print }')"
+
+          if [ -n "$unhealthy_pods" ]; then
+            echo "HomePlan pods are not healthy:"
+            echo "$unhealthy_pods"
+            kubectl get pods --namespace homeplan --output wide
+            kubectl describe pods --namespace homeplan --selector 'app in (homeplan-api,homeplan-web)'
+            exit 1
+          fi
+
+          kubectl get pods --namespace homeplan --selector 'app in (homeplan-api,homeplan-web)' --output wide
