@@ -1,0 +1,29 @@
+images:
+  web: ghcr.io/jasonbuchanan145/homeplan-web:latest
+  api: ghcr.io/jasonbuchanan145/homeplan-api:latest
+  postgres: docker.io/library/postgres:16-alpine
+
+imagePullSecrets:
+  - name: ghcr-pull-secret
+
+rolloutToken: rackspace
+
+api:
+  devMode: false
+
+postgres:
+  database: homeplan
+  user: homeplan
+  password: change-me-before-deploy
+  storage: 10Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  host: homeplan.cyclonedev.com
+  annotations: {}
+  path: /
+  pathType: Prefix
+  tls:
+    enabled: true
+    secretName: cyclonedev-origin-tls

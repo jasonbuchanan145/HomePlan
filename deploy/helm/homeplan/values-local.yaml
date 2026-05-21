@@ -3,20 +3,9 @@ images:
   api: localhost/homeplan-api:dev
   postgres: docker.io/library/postgres:16-alpine
 
-imagePullSecrets: []
-
-rolloutToken: dev
-
-web:
-  replicas: 1
-  service:
-    port: 80
+rolloutToken: local
 
 api:
-  replicas: 1
-  service:
-    port: 8080
-  sessionCookieName: homeplan_session
   devMode: true
 
 postgres:
@@ -28,7 +17,7 @@ postgres:
 ingress:
   enabled: false
   className: ""
-  host: ""
+  host: homeplan.local
   annotations: {}
   path: /
   pathType: Prefix

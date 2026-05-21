@@ -14,6 +14,10 @@ spec:
       annotations:
         homeplan.dev/rollout-token: {{ .Values.rolloutToken | quote }}
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: api
           image: {{ .Values.images.api }}
