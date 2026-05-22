@@ -4,21 +4,38 @@ import FloorPlan from "./components/FloorPlan.vue";
 import FocusList from "./components/FocusList.vue";
 import ProgressPanel from "./components/ProgressPanel.vue";
 import SummaryCards from "./components/SummaryCards.vue";
+import TaskCreateForm from "./components/TaskCreateForm.vue";
 import TaskPanel from "./components/TaskPanel.vue";
 import TaskTable from "./components/TaskTable.vue";
-import { loadCurrentHouse, saveCurrentHouse } from "./services/api";
-import type { HouseState, ItemNeeded, Room, Subtask, Task, TaskPriority, TaskStatus, TaskType, TaskWithContext } from "./types/house";
+import { deleteCurrentHouse, loadCurrentHouse, saveCurrentHouse } from "./services/api";
+import type { HouseState, ItemNeeded, Room, Subtask, Task, TaskCreateDraft, TaskPriority, TaskStatus, TaskTargetOption, TaskType, TaskWithContext } from "./types/house";
 import { allTasks, clampTaskPercent, deleteHouseTask, getRoomTasks, sortedTasks, taskPercent, updateHouseTask, type SortDirection, type SortKey } from "./utils/house";
 
 type ViewMode = "plan" | "table";
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
+type ResetState = "idle" | "resetting" | "error";
 type RoomSize = "small" | "medium" | "large";
 type RoomShape = "square" | "wide" | "tall";
+type OnboardingMode = "projects" | "rooms" | null;
+type ProjectSetupFloorKey = "main" | "second" | "exterior";
 
 interface HouseDraft {
   house: HouseState;
   updatedAt: number;
   dirty: boolean;
+}
+
+interface ProjectSetupRow {
+  id: string;
+  floorKey: ProjectSetupFloorKey;
+  areaName: string;
+  taskTitles: string[];
+}
+
+interface FloorSetupRow {
+  id: string;
+  name: string;
+  rooms: string[];
 }
 
 const DRAFT_KEY = "homeplan.houseDraft";
@@ -39,6 +56,30 @@ const ROOM_SIZE_PRESETS: Record<RoomSize, Record<RoomShape, Pick<Room["layout"],
     tall: { w: 34, h: 52 }
   }
 };
+const PROJECT_SETUP_FLOORS: Array<{ value: ProjectSetupFloorKey; label: string }> = [
+  { value: "main", label: "Main Floor" },
+  { value: "second", label: "Floor 2" },
+  { value: "exterior", label: "Exterior" }
+];
+const COMMON_PROJECT_AREAS = [
+  "Kitchen",
+  "Living Room",
+  "Main Bedroom",
+  "Bedroom 2",
+  "Bedroom 3",
+  "Family Room",
+  "Dining Room",
+  "Main Bathroom 1",
+  "Main Bathroom 2",
+  "Main Bathroom 3",
+  "Laundry Room",
+  "Basement",
+  "Garage",
+  "Hallway",
+  "Entry",
+  "Office",
+  "Exterior"
+];
 
 const house = ref<HouseState | null>(null);
 const activeFloor = ref("top");
@@ -49,10 +90,20 @@ const sortKey = ref<SortKey>("priority");
 const sortDirection = ref<SortDirection>("asc");
 const dataSource = ref<"api" | "empty">("empty");
 const saveState = ref<SaveState>("idle");
-const setupMode = ref(false);
-const setupHouseName = ref("");
-const setupFloorName = ref("");
-const setupRoomName = ref("");
+const resetState = ref<ResetState>("idle");
+const onboardingMode = ref<OnboardingMode>(null);
+const projectSetupHouseName = ref("My Home");
+const projectSetupRows = ref<ProjectSetupRow[]>([
+  { id: uniqueId("project-area"), floorKey: "main", areaName: "Kitchen", taskTitles: [""] }
+]);
+const roomSetupHouseName = ref("My Home");
+const roomSetupFloors = ref<FloorSetupRow[]>([
+  { id: uniqueId("setup-floor"), name: "Main Floor", rooms: ["Kitchen", "Living Room", "Bathroom"] },
+  { id: uniqueId("setup-floor"), name: "Second Floor", rooms: ["Bedroom", "Office"] }
+]);
+const taskCreateOpen = ref(false);
+const taskCreateDefaultTarget = ref("");
+const taskCreateLockTarget = ref(false);
 
 const currentFloor = computed(() => house.value?.floors[activeFloor.value]);
 const tasks = computed(() => (house.value ? allTasks(house.value) : []));
@@ -72,7 +123,8 @@ const saveButtonLabel = computed(() => {
   if (saveState.value === "error") return "Save";
   return "Save";
 });
-const taskTargetOptions = computed(() => {
+const startOverLabel = computed(() => (resetState.value === "resetting" ? "Clearing" : "Start Over"));
+const taskTargetOptions = computed<TaskTargetOption[]>(() => {
   if (!house.value) return [];
   const roomTargets = Object.entries(house.value.floors).flatMap(([floorKey, floor]) =>
     floor.rooms.map((room) => ({ value: `room:${floorKey}:${room.id}`, label: `${floor.label} / ${room.name}` }))
@@ -86,8 +138,8 @@ const taskTargetOptions = computed(() => {
     ...roomTargets,
     ...unplacedTargets,
     ...groupTargets,
-    { value: `new-room:${activeFloor.value}`, label: `Create new room on ${currentFloor.value?.label ?? "current floor"}` },
-    { value: "new-unplaced-room", label: "Create unplaced room" }
+    { value: `new-room:${activeFloor.value}`, label: `Create new room on ${currentFloor.value?.label ?? "current floor"}`, needsRoomName: true },
+    { value: "new-unplaced-room", label: "Create unplaced room", needsRoomName: true }
   ];
 });
 
@@ -226,6 +278,9 @@ function loadHouse(nextHouse: HouseState, source: "api" | "empty", state: SaveSt
   activeFloor.value = nextHouse.floors.top ? "top" : Object.keys(nextHouse.floors)[0] ?? "";
   selectedRoomId.value = nextHouse.floors[activeFloor.value]?.defaultRoom ?? Object.values(nextHouse.floors)[0]?.defaultRoom ?? "";
   taskFilter.value = "rooms";
+  viewMode.value = "plan";
+  onboardingMode.value = null;
+  resetState.value = "idle";
 }
 
 function selectFloor(floorKey: string) {
@@ -278,6 +333,39 @@ function uniqueId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+function defaultRoomLayout(index: number): Room["layout"] {
+  const preset = ROOM_SIZE_PRESETS.medium.wide;
+  const column = index % 2;
+  const row = Math.floor(index / 2) % 3;
+  return {
+    x: 6 + column * 44,
+    y: 8 + row * 30,
+    ...preset
+  };
+}
+
+function roomFromSetup(name: string, index: number, tasks: Task[] = [], tone?: Room["display"]): Room {
+  const roomName = name.trim() || `Room ${index + 1}`;
+  return {
+    id: uniqueId(slugify(roomName)),
+    name: roomName,
+    layout: defaultRoomLayout(index),
+    display: tone,
+    tasks
+  };
+}
+
+function taskFromSetupTitle(title: string): Task {
+  return newTask({
+    title: title.trim(),
+    priority: "important",
+    type: "DIY",
+    status: "open",
+    subtasks: [],
+    itemsNeeded: []
+  });
+}
+
 function starterHouse(houseName = "My Home", floorName = "Main Floor", roomName = "Main Room"): HouseState {
   return {
     schemaVersion: 1,
@@ -310,15 +398,20 @@ function starterHouse(houseName = "My Home", floorName = "Main Floor", roomName 
   };
 }
 
-function newTask(title = "New task"): Task {
-  return {
+function newTask(draft: Pick<TaskCreateDraft, "title" | "priority" | "type" | "status" | "notes" | "subtasks" | "itemsNeeded">): Task {
+  const task: Task = {
     id: uniqueId("task"),
-    title,
-    priority: "important",
-    type: "DIY",
-    status: "open",
-    completedOn: ""
+    title: draft.title,
+    priority: draft.priority,
+    type: draft.type,
+    status: draft.status,
+    notes: draft.notes,
+    subtasks: draft.subtasks.map((subtask) => ({ id: uniqueId("subtask"), title: subtask.title, status: subtask.status })),
+    itemsNeeded: draft.itemsNeeded.map((item) => ({ name: item.name, status: item.status || "needed" }))
   };
+  if (draft.status === "in-progress") task.percentComplete = 25;
+  if (draft.status === "done") task.completedOn = localDateString();
+  return task;
 }
 
 function localDateString(date = new Date()): string {
@@ -352,12 +445,139 @@ function createBlankHouse() {
   void createAndSaveHouse(starterHouse());
 }
 
-function startGuidedSetup() {
-  setupMode.value = true;
+function selectOnboardingMode(mode: Exclude<OnboardingMode, null>) {
+  onboardingMode.value = mode;
 }
 
-function finishGuidedSetup() {
-  void createAndSaveHouse(starterHouse(setupHouseName.value, setupFloorName.value, setupRoomName.value));
+function addProjectSetupRow() {
+  projectSetupRows.value.push({ id: uniqueId("project-area"), floorKey: "main", areaName: "", taskTitles: [""] });
+}
+
+function removeProjectSetupRow(rowId: string) {
+  projectSetupRows.value = projectSetupRows.value.filter((row) => row.id !== rowId);
+  if (!projectSetupRows.value.length) addProjectSetupRow();
+}
+
+function addProjectTask(row: ProjectSetupRow) {
+  row.taskTitles.push("");
+}
+
+function removeProjectTask(row: ProjectSetupRow, taskIndex: number) {
+  row.taskTitles.splice(taskIndex, 1);
+  if (!row.taskTitles.length) row.taskTitles.push("");
+}
+
+function createHouseFromProjects() {
+  const rows = projectSetupRows.value
+    .map((row) => ({
+      floorKey: row.floorKey,
+      areaName: row.areaName.trim(),
+      taskTitles: row.taskTitles.map((title) => title.trim()).filter(Boolean)
+    }))
+    .filter((row) => row.areaName || row.taskTitles.length);
+
+  const setupRows = rows.length ? rows : [{ floorKey: "main" as ProjectSetupFloorKey, areaName: "Main Room", taskTitles: [] }];
+  const floors = Object.fromEntries(
+    PROJECT_SETUP_FLOORS.map((floorOption) => {
+      const floorRows = setupRows.filter((row) => row.floorKey === floorOption.value);
+      if (!floorRows.length) return null;
+      const rooms = floorRows.map((row, index) =>
+        roomFromSetup(
+          row.areaName || `Project Area ${index + 1}`,
+          index,
+          row.taskTitles.map(taskFromSetupTitle),
+          floorOption.value === "exterior" ? { tone: "outdoor", borderStyle: "dashed" } : undefined
+        )
+      );
+      return [
+        floorOption.value,
+        {
+          label: floorOption.label,
+          defaultRoom: rooms[0].id,
+          grid: { columns: 100, rows: 100 },
+          rooms
+        }
+      ];
+    }).filter(Boolean) as Array<[ProjectSetupFloorKey, HouseState["floors"][string]]>
+  );
+
+  void createAndSaveHouse({
+    schemaVersion: 1,
+    id: uniqueId("house"),
+    name: projectSetupHouseName.value.trim() || "My Home",
+    taskGroups: {
+      wholeHouse: {
+        label: "Whole House",
+        description: "Projects that cut across multiple rooms.",
+        tasks: []
+      }
+    },
+    roomTaskSets: {},
+    floors,
+    unplacedRooms: []
+  });
+}
+
+function addFloorSetupRow() {
+  const floorNumber = roomSetupFloors.value.length + 1;
+  roomSetupFloors.value.push({ id: uniqueId("setup-floor"), name: `Floor ${floorNumber}`, rooms: [""] });
+}
+
+function removeFloorSetupRow(floorId: string) {
+  roomSetupFloors.value = roomSetupFloors.value.filter((floor) => floor.id !== floorId);
+  if (!roomSetupFloors.value.length) addFloorSetupRow();
+}
+
+function addSetupRoom(floor: FloorSetupRow) {
+  floor.rooms.push("");
+}
+
+function removeSetupRoom(floor: FloorSetupRow, roomIndex: number) {
+  floor.rooms.splice(roomIndex, 1);
+  if (!floor.rooms.length) floor.rooms.push("");
+}
+
+function createHouseFromRooms() {
+  const floors = roomSetupFloors.value
+    .map((floor, floorIndex) => {
+      const roomNames = floor.rooms.map((room) => room.trim()).filter(Boolean);
+      return {
+        label: floor.name.trim() || `Floor ${floorIndex + 1}`,
+        roomNames: roomNames.length ? roomNames : ["Main Room"]
+      };
+    })
+    .filter((floor) => floor.label || floor.roomNames.length);
+
+  const setupFloors = floors.length ? floors : [{ label: "Main Floor", roomNames: ["Main Room"] }];
+  const floorEntries = setupFloors.map((floor, floorIndex) => {
+    const floorKey = floorIndex === 0 ? "main" : uniqueId(slugify(floor.label));
+    const rooms = floor.roomNames.map((roomName, roomIndex) => roomFromSetup(roomName, roomIndex));
+    return [
+      floorKey,
+      {
+        label: floor.label,
+        defaultRoom: rooms[0].id,
+        grid: { columns: 100, rows: 100 },
+        rooms
+      }
+    ] as const;
+  });
+
+  void createAndSaveHouse({
+    schemaVersion: 1,
+    id: uniqueId("house"),
+    name: roomSetupHouseName.value.trim() || "My Home",
+    taskGroups: {
+      wholeHouse: {
+        label: "Whole House",
+        description: "Projects that cut across multiple rooms.",
+        tasks: []
+      }
+    },
+    roomTaskSets: {},
+    floors: Object.fromEntries(floorEntries),
+    unplacedRooms: []
+  });
 }
 
 function updateTaskTitle(taskId: string, title: string) {
@@ -474,38 +694,45 @@ function addTaskToRoom(floorKey: string, roomId: string, task: Task) {
   markEdited();
 }
 
-function addTask() {
-  if (!house.value) return;
-  const task = newTask();
+function currentPanelTaskTarget(): string {
+  if (!house.value) return "";
+  if (taskFilter.value !== "rooms" && house.value.taskGroups[taskFilter.value]) return `group:${taskFilter.value}`;
+  if (currentFloor.value && selectedRoom.value) return `room:${activeFloor.value}:${selectedRoom.value.id}`;
+  return "";
+}
 
-  if (taskFilter.value !== "rooms") {
-    const group = house.value.taskGroups[taskFilter.value];
-    if (!group) return;
-    house.value = {
-      ...house.value,
-      taskGroups: {
-        ...house.value.taskGroups,
-        [taskFilter.value]: {
-          ...group,
-          tasks: [...group.tasks, task]
-        }
-      }
-    };
+function openTaskCreateForm(defaultTarget = "", lockTarget = false) {
+  taskCreateDefaultTarget.value = defaultTarget;
+  taskCreateLockTarget.value = lockTarget;
+  taskCreateOpen.value = true;
+}
+
+function closeTaskCreateForm() {
+  taskCreateOpen.value = false;
+}
+
+function openPanelTaskForm() {
+  const target = currentPanelTaskTarget();
+  openTaskCreateForm(target, Boolean(target));
+}
+
+function openAllTasksTaskForm() {
+  openTaskCreateForm("", false);
+}
+
+function createTaskFromDraft(draft: TaskCreateDraft) {
+  if (!house.value) return;
+  const task = newTask(draft);
+
+  if (draft.target === "new-unplaced-room") {
+    const room = buildRoom(draft.roomName || `Unplaced Room ${(house.value.unplacedRooms ?? []).length + 1}`, task);
+    house.value = { ...house.value, unplacedRooms: [...(house.value.unplacedRooms ?? []), room] };
     markEdited();
+    closeTaskCreateForm();
     return;
   }
 
-  const floor = currentFloor.value;
-  const room = selectedRoom.value;
-  if (!floor || !room) return;
-
-  addTaskToRoom(activeFloor.value, room.id, task);
-}
-
-function addTaskToTarget(target: string) {
-  if (!house.value) return;
-  const task = newTask();
-  const [kind, first, second] = target.split(":");
+  const [kind, first, second] = draft.target.split(":");
 
   if (kind === "group") {
     const group = house.value.taskGroups[first];
@@ -518,11 +745,13 @@ function addTaskToTarget(target: string) {
       }
     };
     markEdited();
+    closeTaskCreateForm();
     return;
   }
 
   if (kind === "room") {
     addTaskToRoom(first, second, task);
+    closeTaskCreateForm();
     return;
   }
 
@@ -532,22 +761,17 @@ function addTaskToTarget(target: string) {
       unplacedRooms: (house.value.unplacedRooms ?? []).map((room) => (room.id === first ? { ...room, tasks: [...(room.tasks ?? []), task] } : room))
     };
     markEdited();
+    closeTaskCreateForm();
     return;
   }
 
   if (kind === "new-room") {
-    const room = buildRoom(`New Room ${Object.values(house.value.floors[first]?.rooms ?? []).length + 1}`, task);
+    const room = buildRoom(draft.roomName || `New Room ${Object.values(house.value.floors[first]?.rooms ?? []).length + 1}`, task);
     addRoomToFloor(first, room);
     selectedRoomId.value = room.id;
     activeFloor.value = first;
     taskFilter.value = "rooms";
-    return;
-  }
-
-  if (target === "new-unplaced-room") {
-    const room = buildRoom(`Unplaced Room ${(house.value.unplacedRooms ?? []).length + 1}`, task);
-    house.value = { ...house.value, unplacedRooms: [...(house.value.unplacedRooms ?? []), room] };
-    markEdited();
+    closeTaskCreateForm();
   }
 }
 
@@ -784,6 +1008,24 @@ async function saveHouse() {
     saveState.value = "error";
   }
 }
+
+async function startOver() {
+  if (!house.value || resetState.value === "resetting") return;
+  resetState.value = "resetting";
+  try {
+    await deleteCurrentHouse();
+    clearDraft();
+    house.value = null;
+    dataSource.value = "empty";
+    saveState.value = "idle";
+    onboardingMode.value = null;
+    taskCreateOpen.value = false;
+    resetState.value = "idle";
+  } catch {
+    resetState.value = "error";
+    saveState.value = "error";
+  }
+}
 </script>
 
 <template>
@@ -800,44 +1042,158 @@ async function saveHouse() {
           <button class="save-button" type="button" :disabled="!house || saveState === 'saving'" @click="saveHouse">
             {{ saveButtonLabel }}
           </button>
+          <button class="text-button danger-button" type="button" :disabled="!house || resetState === 'resetting'" @click="startOver">
+            {{ startOverLabel }}
+          </button>
         </div>
       </div>
     </section>
 
-    <section v-if="!house" class="panel empty-state" aria-labelledby="empty-title">
-      <div class="panel-header">
-        <div>
-          <h2 id="empty-title">No house loaded</h2>
-          <p>Start with a blank editable plan, or add a few starter names first.</p>
+    <section v-if="!house" class="empty-state" aria-labelledby="empty-title">
+      <div class="splash-grid">
+        <div class="empty-intro">
+          <p class="eyebrow">Set up your home</p>
+          <h2 id="empty-title">Plan home projects by room, not just by list.</h2>
+          <p>Map the house, attach the work to each area, and keep repairs, materials, and progress in one place.</p>
         </div>
-        <div class="panel-actions">
-          <button class="text-button" type="button" @click="createBlankHouse">Create Blank House</button>
-          <button class="text-button" type="button" @click="startGuidedSetup">Start Guided Setup</button>
+
+        <div class="splash-preview" role="group" aria-label="Static example of a room-by-room home project plan">
+          <div class="preview-plan" aria-hidden="true">
+            <div class="preview-room preview-kitchen is-active">
+              <strong>Kitchen</strong>
+              <span>3 tasks</span>
+            </div>
+            <div class="preview-room preview-living">
+              <strong>Living Room</strong>
+              <span>1 task</span>
+            </div>
+            <div class="preview-room preview-bedroom">
+              <strong>Main Bedroom</strong>
+              <span>2 tasks</span>
+            </div>
+            <div class="preview-room preview-bath">
+              <strong>Bathroom</strong>
+              <span>1 blocked</span>
+            </div>
+            <div class="preview-room preview-exterior">
+              <strong>Exterior</strong>
+              <span>seasonal</span>
+            </div>
+          </div>
+
+          <div class="preview-details">
+            <p class="preview-label">Example plan</p>
+            <h3>Kitchen • 3 open tasks</h3>
+            <ul class="preview-task-list" aria-label="Example kitchen tasks">
+              <li><span class="badge urgent">urgent</span> Replace loose outlet cover</li>
+              <li><span class="badge contractor">contractor</span> Book electrician</li>
+              <li><span class="badge diy">DIY</span> Measure cabinet hinges</li>
+            </ul>
+            <p class="preview-next">Next: book electrician</p>
+          </div>
         </div>
       </div>
-      <div v-if="setupMode" class="setup-grid">
-        <label class="field-label">
+
+      <div class="onboarding-choice-grid" aria-label="Setup paths">
+        <button class="setup-card" type="button" aria-label="Start with projects" :aria-pressed="onboardingMode === 'projects'" @click="selectOnboardingMode('projects')">
+          <span class="setup-card-kicker">Have a punch list?</span>
+          <strong>Start with projects</strong>
+          <span>Turn a punch list into rooms with tasks attached.</span>
+        </button>
+        <button class="setup-card" type="button" aria-label="Start with rooms" :aria-pressed="onboardingMode === 'rooms'" @click="selectOnboardingMode('rooms')">
+          <span class="setup-card-kicker">Mapping the house?</span>
+          <strong>Start with rooms</strong>
+          <span>Map floors and rooms first, then add work as you walk through.</span>
+        </button>
+      </div>
+
+      <div v-if="onboardingMode === 'projects'" class="panel onboarding-panel" aria-labelledby="projects-setup-title">
+        <div class="panel-header">
+          <div>
+            <h3 id="projects-setup-title">Start from a repair list</h3>
+            <p>Pick the floor or exterior area first, then add the tasks you already know about.</p>
+          </div>
+          <button class="text-button" type="button" @click="addProjectSetupRow">Add More Areas Or Rooms</button>
+        </div>
+        <label class="field-label onboarding-house-name">
           <span>House Name</span>
-          <input v-model="setupHouseName" class="field-control" type="text" placeholder="My Home" />
+          <input v-model="projectSetupHouseName" class="field-control" type="text" placeholder="My Home" />
         </label>
-        <label class="field-label">
-          <span>First Floor</span>
-          <input v-model="setupFloorName" class="field-control" type="text" placeholder="Main Floor" />
-        </label>
-        <label class="field-label">
-          <span>First Room</span>
-          <input v-model="setupRoomName" class="field-control" type="text" placeholder="Main Room" />
-        </label>
-        <div class="setup-actions">
-          <button class="text-button" type="button" @click="finishGuidedSetup">Create House</button>
-          <button class="text-button" type="button" @click="finishGuidedSetup">Exit Setup And Create</button>
+        <div class="project-setup-list">
+          <article v-for="row in projectSetupRows" :key="row.id" class="setup-row-card">
+            <div class="setup-row-fields">
+              <label class="field-label">
+                <span>Floor Or Area</span>
+                <select v-model="row.floorKey" class="field-control">
+                  <option v-for="floorOption in PROJECT_SETUP_FLOORS" :key="floorOption.value" :value="floorOption.value">{{ floorOption.label }}</option>
+                </select>
+              </label>
+              <label class="field-label">
+                <span>Area Or Room</span>
+                <select v-model="row.areaName" class="field-control">
+                  <option value="">Choose an area</option>
+                  <option v-for="areaName in COMMON_PROJECT_AREAS" :key="areaName" :value="areaName">{{ areaName }}</option>
+                </select>
+              </label>
+              <button class="text-button danger-button" type="button" @click="removeProjectSetupRow(row.id)">Remove</button>
+            </div>
+            <div class="setup-task-list">
+              <label v-for="(_, taskIndex) in row.taskTitles" :key="`${row.id}-${taskIndex}`" class="field-label">
+                <span>Task {{ taskIndex + 1 }}</span>
+                <input v-model="row.taskTitles[taskIndex]" class="field-control" type="text" placeholder="What needs to happen?" />
+              </label>
+            </div>
+            <div class="setup-actions">
+              <button class="text-button" type="button" @click="addProjectTask(row)">Add Task Line</button>
+              <button v-if="row.taskTitles.length > 1" class="text-button danger-button" type="button" @click="removeProjectTask(row, row.taskTitles.length - 1)">Remove Last Task</button>
+            </div>
+          </article>
+        </div>
+        <div class="setup-submit-row">
+          <button class="save-button" type="button" @click="createHouseFromProjects">Create House From Projects</button>
         </div>
       </div>
-      <div class="progress-grid">
-        <div class="progress-stat"><strong>0</strong><span>Open</span></div>
-        <div class="progress-stat"><strong>0</strong><span>Critical</span></div>
-        <div class="progress-stat"><strong>0</strong><span>Contractor</span></div>
-        <div class="progress-stat"><strong>0</strong><span>Total</span></div>
+
+      <div v-if="onboardingMode === 'rooms'" class="panel onboarding-panel" aria-labelledby="rooms-setup-title">
+        <div class="panel-header">
+          <div>
+            <h3 id="rooms-setup-title">Map rooms first</h3>
+            <p>Name the floors you care about now. You can rename, resize, and add more rooms later.</p>
+          </div>
+          <button class="text-button" type="button" @click="addFloorSetupRow">Add Floor</button>
+        </div>
+        <label class="field-label onboarding-house-name">
+          <span>House Name</span>
+          <input v-model="roomSetupHouseName" class="field-control" type="text" placeholder="My Home" />
+        </label>
+        <div class="floor-setup-list">
+          <article v-for="floor in roomSetupFloors" :key="floor.id" class="setup-row-card">
+            <div class="setup-row-header">
+              <label class="field-label">
+                <span>Floor Name</span>
+                <input v-model="floor.name" class="field-control" type="text" placeholder="Main Floor" />
+              </label>
+              <button class="text-button danger-button" type="button" @click="removeFloorSetupRow(floor.id)">Remove</button>
+            </div>
+            <div class="setup-room-list">
+              <label v-for="(_, roomIndex) in floor.rooms" :key="`${floor.id}-${roomIndex}`" class="field-label">
+                <span>Room {{ roomIndex + 1 }}</span>
+                <input v-model="floor.rooms[roomIndex]" class="field-control" type="text" placeholder="Kitchen, Bedroom, Hall" />
+              </label>
+            </div>
+            <div class="setup-actions">
+              <button class="text-button" type="button" @click="addSetupRoom(floor)">Add Room</button>
+              <button v-if="floor.rooms.length > 1" class="text-button danger-button" type="button" @click="removeSetupRoom(floor, floor.rooms.length - 1)">Remove Last Room</button>
+            </div>
+          </article>
+        </div>
+        <div class="setup-submit-row">
+          <button class="save-button" type="button" @click="createHouseFromRooms">Create House From Rooms</button>
+        </div>
+      </div>
+
+      <div class="blank-house-row">
+        <button class="text-button" type="button" @click="createBlankHouse">Create Blank House</button>
       </div>
     </section>
 
@@ -931,7 +1287,7 @@ async function saveHouse() {
           :title="panelTitle"
           :subtitle="panelSubtitle"
           :tasks="panelTasks"
-          @add-task="addTask"
+          @add-task="openPanelTaskForm"
           @update-task-title="updateTaskTitle"
           @update-task-priority="updateTaskPriority"
           @update-task-type="updateTaskType"
@@ -998,7 +1354,7 @@ async function saveHouse() {
         :task-targets="taskTargetOptions"
         @sort="changeSort"
         @select-task="selectTask"
-        @add-task="addTaskToTarget"
+        @add-task="openAllTasksTaskForm"
         @update-task-title="updateTaskTitle"
         @update-task-priority="updateTaskPriority"
         @update-task-type="updateTaskType"
@@ -1009,6 +1365,16 @@ async function saveHouse() {
       />
 
       <p v-if="saveState === 'error'" class="error-note">Could not save to the API. Your local draft is still available.</p>
+      <p v-if="resetState === 'error'" class="error-note">Could not clear the saved house. Try again in a moment.</p>
     </template>
+
+    <TaskCreateForm
+      :open="taskCreateOpen"
+      :target-options="taskTargetOptions"
+      :default-target="taskCreateDefaultTarget"
+      :lock-target="taskCreateLockTarget"
+      @close="closeTaskCreateForm"
+      @create-task="createTaskFromDraft"
+    />
   </main>
 </template>

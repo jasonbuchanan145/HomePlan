@@ -46,6 +46,36 @@ func TestSaveAndLoadCurrentHouse(t *testing.T) {
 	}
 }
 
+func TestDeleteCurrentHouse(t *testing.T) {
+	router := NewRouter(store.NewMemoryStore(), "homeplan_session", 14*24*time.Hour, false)
+
+	save := httptest.NewRecorder()
+	router.ServeHTTP(save, httptest.NewRequest(http.MethodPut, "/api/house/current", bytes.NewBufferString(validState)))
+	if save.Code != http.StatusNoContent {
+		t.Fatalf("expected save 204, got %d: %s", save.Code, save.Body.String())
+	}
+
+	deleteReq := httptest.NewRequest(http.MethodDelete, "/api/house/current", nil)
+	for _, cookie := range save.Result().Cookies() {
+		deleteReq.AddCookie(cookie)
+	}
+	reset := httptest.NewRecorder()
+	router.ServeHTTP(reset, deleteReq)
+	if reset.Code != http.StatusNoContent {
+		t.Fatalf("expected delete 204, got %d: %s", reset.Code, reset.Body.String())
+	}
+
+	loadReq := httptest.NewRequest(http.MethodGet, "/api/house/current", nil)
+	for _, cookie := range save.Result().Cookies() {
+		loadReq.AddCookie(cookie)
+	}
+	load := httptest.NewRecorder()
+	router.ServeHTTP(load, loadReq)
+	if load.Code != http.StatusNotFound {
+		t.Fatalf("expected load after delete 404, got %d: %s", load.Code, load.Body.String())
+	}
+}
+
 func TestInvalidJSON(t *testing.T) {
 	router := NewRouter(store.NewMemoryStore(), "homeplan_session", 14*24*time.Hour, false)
 	recorder := httptest.NewRecorder()

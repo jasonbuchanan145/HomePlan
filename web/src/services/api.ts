@@ -21,3 +21,14 @@ export async function saveCurrentHouse(house: HouseState): Promise<void> {
     throw new Error(`Save failed with ${response.status}`);
   }
 }
+
+export async function deleteCurrentHouse(): Promise<void> {
+  const response = await fetch("/api/house/current", {
+    method: "DELETE",
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    throw new Error(`Delete failed with ${response.status}`);
+  }
+}

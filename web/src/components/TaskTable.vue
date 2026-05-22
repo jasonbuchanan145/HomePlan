@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import type { SortDirection, SortKey } from "../utils/house";
-import type { TaskPriority, TaskStatus, TaskType, TaskWithContext } from "../types/house";
+import type { TaskPriority, TaskStatus, TaskTargetOption, TaskType, TaskWithContext } from "../types/house";
 import { badgeClass, badgeLabel, formatDate, statusLabel, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES, taskPercent } from "../utils/house";
 
 defineProps<{
   tasks: TaskWithContext[];
   sortKey: SortKey;
   sortDirection: SortDirection;
-  taskTargets: Array<{ value: string; label: string }>;
+  taskTargets: TaskTargetOption[];
 }>();
 
 defineEmits<{
@@ -21,7 +20,7 @@ defineEmits<{
   updateTaskProgress: [taskId: string, percentComplete: number];
   updateTaskCompletedOn: [taskId: string, completedOn: string];
   deleteTask: [taskId: string];
-  addTask: [target: string];
+  addTask: [];
 }>();
 
 const columns: Array<{ key: SortKey; label: string }> = [
@@ -35,7 +34,6 @@ const columns: Array<{ key: SortKey; label: string }> = [
   { key: "completedOn", label: "Completed" }
 ];
 
-const selectedTarget = ref("");
 </script>
 
 <template>
@@ -45,13 +43,7 @@ const selectedTarget = ref("");
         <h2 id="all-tasks-title">All Tasks</h2>
         <p>Tap a header to sort. Select a row to open its room or task group.</p>
       </div>
-      <div class="table-add-task">
-        <select v-model="selectedTarget" class="field-control" aria-label="New task target">
-          <option value="">Choose target</option>
-          <option v-for="target in taskTargets" :key="target.value" :value="target.value">{{ target.label }}</option>
-        </select>
-        <button class="text-button" type="button" :disabled="!selectedTarget" @click="$emit('addTask', selectedTarget)">Add Task</button>
-      </div>
+      <button class="text-button" type="button" :disabled="!taskTargets.length" @click="$emit('addTask')">Add Task</button>
     </div>
     <div class="table-wrap">
       <table class="task-table">

@@ -47,6 +47,13 @@ func (s *MemoryStore) SaveCurrentHouse(_ context.Context, sessionToken string, s
 	return nil
 }
 
+func (s *MemoryStore) DeleteCurrentHouse(_ context.Context, sessionToken string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.states, sessionToken)
+	return nil
+}
+
 func (s *MemoryStore) LoadDevUserHouse(_ context.Context) (json.RawMessage, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

@@ -98,6 +98,16 @@ func (s *PostgresStore) SaveCurrentHouse(ctx context.Context, sessionToken strin
 	return tx.Commit()
 }
 
+func (s *PostgresStore) DeleteCurrentHouse(ctx context.Context, sessionToken string) error {
+	_, err := s.db.ExecContext(ctx, `
+		delete from houses
+		where anonymous_session_id = (
+			select id from anonymous_sessions where token = $1
+		)
+	`, sessionToken)
+	return err
+}
+
 func (s *PostgresStore) LoadDevUserHouse(ctx context.Context) (json.RawMessage, error) {
 	var state []byte
 	err := s.db.QueryRowContext(ctx, `
