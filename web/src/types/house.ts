@@ -1,5 +1,5 @@
 export type TaskStatus = "open" | "in-progress" | "done" | "blocked";
-export type TaskPriority = "critical" | "important" | "later" | "complete";
+export type TaskPriority = "critical" | "important" | "later";
 export type TaskType = "DIY" | "contractor" | "done";
 
 export interface RoomLayout {
@@ -29,6 +29,7 @@ export interface Task {
   priority: TaskPriority;
   type: TaskType;
   status: TaskStatus;
+  notes?: string;
   dateStarted?: string;
   completedOn?: string;
   percentComplete?: number;
@@ -87,4 +88,22 @@ export interface TaskWithContext extends Task {
   roomId: string;
   groupKey: string;
   isUnplaced?: boolean;
+}
+
+export interface TaskTargetOption {
+  value: string;
+  label: string;
+  needsRoomName?: boolean;
+}
+
+export interface TaskCreateDraft {
+  title: string;
+  target: string;
+  priority: TaskPriority;
+  type: TaskType;
+  status: TaskStatus;
+  notes?: string;
+  roomName?: string;
+  subtasks: Array<Pick<Subtask, "title" | "status">>;
+  itemsNeeded: Array<Pick<ItemNeeded, "name" | "status">>;
 }

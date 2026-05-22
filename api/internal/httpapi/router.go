@@ -16,6 +16,7 @@ type HouseStore interface {
 	EnsureAnonymousSession(ctx context.Context, token string, expiresAt time.Time) error
 	LoadCurrentHouse(ctx context.Context, sessionToken string) (json.RawMessage, error)
 	SaveCurrentHouse(ctx context.Context, sessionToken string, state json.RawMessage) error
+	DeleteCurrentHouse(ctx context.Context, sessionToken string) error
 	LoadDevUserHouse(ctx context.Context) (json.RawMessage, error)
 	SaveDevUserHouse(ctx context.Context, state json.RawMessage) error
 	ResetDevUserHouse(ctx context.Context) error
@@ -27,6 +28,7 @@ func NewRouter(store HouseStore, cookieName string, anonymousTTL time.Duration, 
 	mux.HandleFunc("GET /healthz", api.health)
 	mux.HandleFunc("GET /api/house/current", api.getCurrentHouse)
 	mux.HandleFunc("PUT /api/house/current", api.putCurrentHouse)
+	mux.HandleFunc("DELETE /api/house/current", api.deleteCurrentHouse)
 	mux.HandleFunc("POST /api/dev/users/user-1/house/current", api.seedDevUserHouse)
 	mux.HandleFunc("DELETE /api/dev/users/user-1/house/current", api.resetDevUserHouse)
 	return mux
@@ -110,6 +112,28 @@ func (api apiServer) putCurrentHouse(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := api.store.SaveCurrentHouse(r.Context(), sessionToken, raw); err != nil {
 		writeError(w, http.StatusInternalServerError, "could not save house")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (api apiServer) deleteCurrentHouse(w http.ResponseWriter, r *http.Request) {
+	if api.devMode {
+		if err := api.store.ResetDevUserHouse(r.Context()); err != nil {
+			writeError(w, http.StatusInternalServerError, "could not reset dev house")
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	sessionToken, err := api.ensureSession(w, r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not create anonymous session")
+		return
+	}
+	if err := api.store.DeleteCurrentHouse(r.Context(), sessionToken); err != nil {
+		writeError(w, http.StatusInternalServerError, "could not delete house")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

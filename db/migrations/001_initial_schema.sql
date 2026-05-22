@@ -1,6 +1,6 @@
 create extension if not exists pgcrypto;
 
-create table users (
+create table if not exists users (
   id uuid primary key default gen_random_uuid(),
   email text unique,
   display_name text,
@@ -8,14 +8,14 @@ create table users (
   updated_at timestamptz not null default now()
 );
 
-create table anonymous_sessions (
+create table if not exists anonymous_sessions (
   id uuid primary key default gen_random_uuid(),
   token text not null unique,
   expires_at timestamptz not null,
   created_at timestamptz not null default now()
 );
 
-create table houses (
+create table if not exists houses (
   id uuid primary key default gen_random_uuid(),
   owner_user_id uuid references users(id) on delete set null,
   anonymous_session_id uuid references anonymous_sessions(id) on delete set null,
@@ -26,7 +26,7 @@ create table houses (
   constraint houses_identity_check check (owner_user_id is not null or anonymous_session_id is not null)
 );
 
-create table house_members (
+create table if not exists house_members (
   house_id uuid not null references houses(id) on delete cascade,
   user_id uuid not null references users(id) on delete cascade,
   role text not null default 'owner',
@@ -34,14 +34,14 @@ create table house_members (
   primary key (house_id, user_id)
 );
 
-create table house_state (
+create table if not exists house_state (
   house_id uuid primary key references houses(id) on delete cascade,
   state jsonb not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create table house_versions (
+create table if not exists house_versions (
   id uuid primary key default gen_random_uuid(),
   house_id uuid not null references houses(id) on delete cascade,
   label text,
@@ -50,7 +50,7 @@ create table house_versions (
   created_at timestamptz not null default now()
 );
 
-create table house_events (
+create table if not exists house_events (
   id uuid primary key default gen_random_uuid(),
   house_id uuid not null references houses(id) on delete cascade,
   actor_type text not null,
@@ -60,7 +60,7 @@ create table house_events (
   created_at timestamptz not null default now()
 );
 
-create table proposed_changes (
+create table if not exists proposed_changes (
   id uuid primary key default gen_random_uuid(),
   house_id uuid not null references houses(id) on delete cascade,
   source text not null,
@@ -72,7 +72,7 @@ create table proposed_changes (
   decided_at timestamptz
 );
 
-create table ai_runs (
+create table if not exists ai_runs (
   id uuid primary key default gen_random_uuid(),
   house_id uuid references houses(id) on delete set null,
   user_id uuid references users(id) on delete set null,
@@ -87,7 +87,7 @@ create table ai_runs (
   created_at timestamptz not null default now()
 );
 
-create table api_tokens (
+create table if not exists api_tokens (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
   name text not null,
@@ -98,8 +98,8 @@ create table api_tokens (
   revoked_at timestamptz
 );
 
-create index anonymous_sessions_expires_at_idx on anonymous_sessions (expires_at);
-create index houses_anonymous_session_id_idx on houses (anonymous_session_id);
-create index house_events_house_id_created_at_idx on house_events (house_id, created_at desc);
-create index proposed_changes_house_id_status_idx on proposed_changes (house_id, status);
-create index ai_runs_house_id_created_at_idx on ai_runs (house_id, created_at desc);
+create index if not exists anonymous_sessions_expires_at_idx on anonymous_sessions (expires_at);
+create index if not exists houses_anonymous_session_id_idx on houses (anonymous_session_id);
+create index if not exists house_events_house_id_created_at_idx on house_events (house_id, created_at desc);
+create index if not exists proposed_changes_house_id_status_idx on proposed_changes (house_id, status);
+create index if not exists ai_runs_house_id_created_at_idx on ai_runs (house_id, created_at desc);

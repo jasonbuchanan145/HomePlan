@@ -53,7 +53,24 @@ npm run build
 npm run dev
 ```
 
-The frontend tries `GET /api/house/current` first. If the API is unavailable or no anonymous house has been saved yet, it falls back to the bundled seed state converted from the original `tasks.json` dashboard.
+The frontend tries `GET /api/house/current` first. If no house is available, it starts from an empty state and lets the homeowner create a blank or guided local draft before saving.
+
+Native Windows `npm` is not the primary verification path on the current development machine. Prefer the Minikube image build for frontend verification:
+
+```powershell
+minikube image build --build-opt no-cache=true -t localhost/homeplan-web:verify-room-drafts -f web/Containerfile .
+```
+
+## Playwright
+
+The first Playwright suite lives in `web/e2e` and targets the Minikube-served app at `http://localhost:8080`.
+
+```powershell
+cd web
+npm run test:e2e
+```
+
+Set `PLAYWRIGHT_BASE_URL` to point at another running deployment. The tests assume the local dev endpoints are available so each run can reset the deterministic dev house.
 
 ## API
 
@@ -96,4 +113,4 @@ For a frontend-only smoke test of the new Vue app with Podman:
 .\scripts\serve.ps1
 ```
 
-Then visit `http://localhost:8080`. API calls will fall back to seed data unless an API is available behind the Nginx `/api` proxy.
+Then visit `http://localhost:8080`. Without an API behind the Nginx `/api` proxy, the app stays in its empty/local draft flow and saves drafts in the browser until the API is available.

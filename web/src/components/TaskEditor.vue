@@ -36,6 +36,7 @@ defineEmits<{
       <button class="text-button danger-button" type="button" @click="$emit('deleteTask', task.id)">Delete</button>
     </div>
     <p v-if="context" class="task-meta">{{ context }}</p>
+    <p v-if="task.notes" class="task-notes">{{ task.notes }}</p>
     <div class="task-badges task-badges-spaced">
       <span v-for="badge in taskBadges(task)" :key="`${task.id}-${badge.className}`" class="badge" :class="badge.className">
         {{ badge.label }}

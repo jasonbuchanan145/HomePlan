@@ -1,6 +1,7 @@
 param(
   [string]$Namespace = "homeplan",
   [string]$Release = "homeplan",
+  [string]$KubeContext = "minikube",
   [switch]$SkipBuild,
   [int]$Port = 8080
 )
@@ -48,7 +49,23 @@ function Get-MinikubeHostStatus {
 
 function Assert-ClusterReady {
   Invoke-Step "Checking minikube status..." { minikube status }
-  Invoke-Step "Checking Kubernetes API connectivity..." { kubectl cluster-info }
+  Invoke-Step "Checking Kubernetes API connectivity for context $KubeContext..." { kubectl --context $KubeContext cluster-info }
+}
+
+function Assert-MinikubeContext {
+  $contexts = & kubectl config get-contexts -o name
+  if ($LASTEXITCODE -ne 0) {
+    throw "Could not read kube contexts."
+  }
+  if ($contexts -notcontains $KubeContext) {
+    throw "Kubernetes context '$KubeContext' was not found. Refusing to deploy locally."
+  }
+
+  $currentContext = (& kubectl config current-context).Trim()
+  Write-Host "Using Kubernetes context $KubeContext (current context: $currentContext)."
+  if ($KubeContext -ne "minikube") {
+    throw "Local deploys must target the minikube context. Refusing to use '$KubeContext'."
+  }
 }
 
 function Ensure-Namespace {
@@ -57,28 +74,86 @@ function Ensure-Namespace {
   if ($PSVersionTable.PSVersion.Major -ge 7) {
     $PSNativeCommandUseErrorActionPreference = $false
   }
-  kubectl get namespace $Namespace *> $null
+  kubectl --context $KubeContext get namespace $Namespace *> $null
   $namespaceExists = $LASTEXITCODE -eq 0
   if ($PSVersionTable.PSVersion.Major -ge 7) {
     $PSNativeCommandUseErrorActionPreference = $previousNativePreference
   }
 
   if (-not $namespaceExists) {
-    Invoke-Step "Creating namespace $Namespace..." { kubectl create namespace $Namespace }
+    Invoke-Step "Creating namespace $Namespace..." { kubectl --context $KubeContext create namespace $Namespace }
   }
 }
 
 function Wait-Rollout {
   param([string]$Name)
   Invoke-Step "Waiting for deployment/$Name..." {
-    kubectl -n $Namespace rollout status "deployment/$Name" --timeout=180s
+    kubectl --context $KubeContext -n $Namespace rollout status "deployment/$Name" --timeout=180s
   }
+}
+
+function Get-PortListener {
+  param([int]$LocalPort)
+  Get-NetTCPConnection -LocalPort $LocalPort -State Listen -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+}
+
+function Ensure-PortForward {
+  $listener = Get-PortListener -LocalPort $Port
+  if ($listener) {
+    $process = Get-Process -Id $listener.OwningProcess -ErrorAction SilentlyContinue
+    if ($process -and $process.ProcessName -eq "kubectl") {
+      Write-Host "Restarting existing kubectl port-forward on localhost:$Port..."
+      Stop-Process -Id $listener.OwningProcess -Force
+      Start-Sleep -Milliseconds 500
+    } else {
+      $processName = if ($process) { $process.ProcessName } else { "process $($listener.OwningProcess)" }
+      throw "Port $Port is already in use by $processName. Stop that process or choose another -Port."
+    }
+  }
+
+  Get-CimInstance Win32_Process |
+    Where-Object { $_.CommandLine -like "*kubectl*port-forward*svc/homeplan-web*$Port`:80*" } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
+  $logDir = Join-Path $env:TEMP "homeplan-port-forward"
+  New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+  $stdoutLog = Join-Path $logDir "stdout.log"
+  $stderrLog = Join-Path $logDir "stderr.log"
+  Remove-Item -LiteralPath $stdoutLog, $stderrLog -ErrorAction SilentlyContinue
+
+  Write-Host "Starting kubectl port-forward on localhost:$Port..."
+  Start-Process -FilePath "kubectl" `
+    -ArgumentList @("--context", $KubeContext, "-n", $Namespace, "port-forward", "svc/homeplan-web", "$Port`:80") `
+    -WindowStyle Hidden `
+    -RedirectStandardOutput $stdoutLog `
+    -RedirectStandardError $stderrLog
+
+  $deadline = (Get-Date).AddSeconds(15)
+  do {
+    Start-Sleep -Milliseconds 500
+    if (Get-PortListener -LocalPort $Port) {
+      try {
+        $response = Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:$Port/healthz" -TimeoutSec 3
+        if ($response.StatusCode -eq 200) {
+          return
+        }
+      } catch {
+        # The listener can appear before the pod connection is ready.
+      }
+    }
+  } while ((Get-Date) -lt $deadline)
+
+  $stdout = if (Test-Path $stdoutLog) { Get-Content -Raw -LiteralPath $stdoutLog } else { "" }
+  $stderr = if (Test-Path $stderrLog) { Get-Content -Raw -LiteralPath $stderrLog } else { "" }
+  throw "Port-forward did not start listening on localhost:$Port. Logs: $logDir`n$stdout`n$stderr"
 }
 
 try {
   Require-Command minikube
   Require-Command kubectl
   Require-Command helm
+  Assert-MinikubeContext
 
   $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
   Set-Location $repoRoot
@@ -103,24 +178,18 @@ try {
   Ensure-Namespace
 
   Invoke-Step "Deploying HomePlan with Helm..." {
-    helm upgrade --install $Release deploy/helm/homeplan --namespace $Namespace --set images.api=$apiImage --set images.web=$webImage --set rolloutToken=$rolloutToken
+    helm --kube-context $KubeContext upgrade --install $Release deploy/helm/homeplan --namespace $Namespace -f deploy/helm/homeplan/values-local.yaml --set images.api=$apiImage --set images.web=$webImage --set rolloutToken=$rolloutToken
   }
 
   Write-Host "Waiting for workloads..."
   Wait-Rollout "homeplan-postgres"
   Invoke-Step "Waiting for migration job..." {
-    kubectl -n $Namespace wait --for=condition=complete "job/homeplan-migrate" --timeout=180s
+    kubectl --context $KubeContext -n $Namespace wait --for=condition=complete "job/homeplan-migrate" --timeout=180s
   }
   Wait-Rollout "homeplan-api"
   Wait-Rollout "homeplan-web"
 
-  $existingPortForward = Get-CimInstance Win32_Process |
-    Where-Object { $_.CommandLine -like "*kubectl*port-forward*svc/homeplan-web*$Port`:80*" }
-
-  if (-not $existingPortForward) {
-    Write-Host "Starting kubectl port-forward on localhost:$Port..."
-    Start-Process -FilePath "kubectl" -ArgumentList @("-n", $Namespace, "port-forward", "svc/homeplan-web", "$Port`:80") -WindowStyle Hidden
-  }
+  Ensure-PortForward
 
   Write-Host ""
   Write-Host "HomePlan is ready:"

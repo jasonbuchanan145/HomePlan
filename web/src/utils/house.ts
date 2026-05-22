@@ -4,7 +4,7 @@ export type SortDirection = "asc" | "desc";
 export type SortKey = "title" | "area" | "priority" | "type" | "status" | "percentComplete" | "dateStarted" | "completedOn";
 
 export const TASK_STATUSES: TaskStatus[] = ["open", "in-progress", "blocked", "done"];
-export const TASK_PRIORITIES: TaskPriority[] = ["critical", "important", "later", "complete"];
+export const TASK_PRIORITIES: TaskPriority[] = ["critical", "important", "later"];
 export const TASK_TYPES: TaskType[] = ["DIY", "contractor", "done"];
 
 export function getRoomTasks(house: HouseState, room: Room): Task[] {
@@ -129,7 +129,7 @@ export function roomBadges(house: HouseState, room: Room): string[] {
 }
 
 function sortValue(task: TaskWithContext, key: SortKey): string | number {
-  const priorityRank: Record<string, number> = { critical: 1, important: 2, later: 3, complete: 4 };
+  const priorityRank: Record<string, number> = { critical: 1, important: 2, later: 3 };
   const statusRank: Record<string, number> = { "in-progress": 1, blocked: 2, open: 3, done: 4 };
   const typeRank: Record<string, number> = { contractor: 1, DIY: 2, done: 3 };
 
