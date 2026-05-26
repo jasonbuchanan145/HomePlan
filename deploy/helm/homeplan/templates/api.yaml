@@ -29,6 +29,10 @@ spec:
               value: "8080"
             - name: SESSION_COOKIE_NAME
               value: {{ .Values.api.sessionCookieName | quote }}
+            - name: AUTH_SESSION_COOKIE_NAME
+              value: {{ .Values.api.authSessionCookieName | quote }}
+            - name: AUTH_BASE_URL
+              value: {{ .Values.api.authBaseUrl | quote }}
             - name: HOMEPLAN_DEV_MODE
               value: {{ .Values.api.devMode | quote }}
             - name: DATABASE_URL
@@ -36,6 +40,16 @@ spec:
                 secretKeyRef:
                   name: homeplan-postgres
                   key: DATABASE_URL
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: homeplan-postgres
+                  key: GOOGLE_CLIENT_ID
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: homeplan-postgres
+                  key: GOOGLE_CLIENT_SECRET
           startupProbe:
             httpGet:
               path: /healthz

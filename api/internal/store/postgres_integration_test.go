@@ -9,9 +9,12 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
 	"time"
+
+	"homeplan/api/internal/httpapi"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -64,6 +67,48 @@ func TestPostgresStoreDevSeedAndReset(t *testing.T) {
 	assertCount(t, db, "house_state", 0)
 }
 
+func TestPostgresStoreSharedIdentitySessionAndEntitlement(t *testing.T) {
+	db := openMigratedTestDB(t)
+	store := NewPostgresStore(db)
+	ctx := context.Background()
+
+	user, entitlement, err := store.UpsertAuthIdentity(ctx, httpapi.AuthIdentity{
+		Provider:        "google",
+		ProviderSubject: "google-subject-1",
+		Email:           "Person@Example.com",
+		EmailVerified:   true,
+		DisplayName:     "Person Example",
+		AvatarURL:       "https://example.com/avatar.png",
+	})
+	if err != nil {
+		t.Fatalf("upsert identity: %v", err)
+	}
+	if user.Email != "person@example.com" {
+		t.Fatalf("expected lower-case email, got %s", user.Email)
+	}
+	if !entitlement.CanAccess || entitlement.CanUseAI {
+		t.Fatalf("unexpected entitlement: %+v", entitlement)
+	}
+
+	if err := store.CreateUserSession(ctx, user.ID, "test-token-hash", time.Now().Add(time.Hour)); err != nil {
+		t.Fatalf("create session: %v", err)
+	}
+	session, err := store.LoadUserSession(ctx, "test-token-hash")
+	if err != nil {
+		t.Fatalf("load session: %v", err)
+	}
+	if session.User.ID != user.ID || !session.Entitlement.CanAccess {
+		t.Fatalf("unexpected session: %+v", session)
+	}
+
+	if err := store.RevokeUserSession(ctx, "test-token-hash"); err != nil {
+		t.Fatalf("revoke session: %v", err)
+	}
+	if _, err := store.LoadUserSession(ctx, "test-token-hash"); err == nil {
+		t.Fatal("expected revoked session to fail")
+	}
+}
+
 func openMigratedTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 
@@ -91,12 +136,19 @@ func openMigratedTestDB(t *testing.T) *sql.DB {
 	}
 	t.Cleanup(func() { _ = db.Close() })
 
-	migration, err := os.ReadFile(filepath.Join(repoRoot(t), "db", "migrations", "001_initial_schema.sql"))
+	migrationPaths, err := filepath.Glob(filepath.Join(repoRoot(t), "db", "migrations", "*.sql"))
 	if err != nil {
-		t.Fatalf("read migration: %v", err)
+		t.Fatalf("list migrations: %v", err)
 	}
-	if _, err := db.Exec(string(migration)); err != nil {
-		t.Fatalf("apply migration: %v", err)
+	sort.Strings(migrationPaths)
+	for _, migrationPath := range migrationPaths {
+		migration, err := os.ReadFile(migrationPath)
+		if err != nil {
+			t.Fatalf("read migration %s: %v", migrationPath, err)
+		}
+		if _, err := db.Exec(string(migration)); err != nil {
+			t.Fatalf("apply migration %s: %v", migrationPath, err)
+		}
 	}
 
 	return db

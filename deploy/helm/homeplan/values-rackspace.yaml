@@ -10,6 +10,7 @@ rolloutToken: rackspace
 
 api:
   devMode: false
+  authBaseUrl: https://homeplan.cyclonedev.com
 
 postgres:
   database: homeplan
@@ -21,7 +22,23 @@ ingress:
   enabled: true
   className: nginx
   host: homeplan.cyclonedev.com
-  annotations: {}
+  annotations:
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location = /api/docs {
+        return 404;
+      }
+      location = /api/openapi.json {
+        return 404;
+      }
+      location = /api/openapi.yaml {
+        return 404;
+      }
+      location = /api/openapi-3.0.json {
+        return 404;
+      }
+      location = /api/openapi-3.0.yaml {
+        return 404;
+      }
   path: /
   pathType: Prefix
   tls:

@@ -5,6 +5,8 @@ metadata:
 data:
   001_initial_schema.sql: |
 {{ .Files.Get "files/001_initial_schema.sql" | indent 4 }}
+  002_shared_identity.sql: |
+{{ .Files.Get "files/002_shared_identity.sql" | indent 4 }}
 ---
 apiVersion: batch/v1
 kind: Job

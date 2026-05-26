@@ -2,7 +2,8 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 
 async function resetHouse(request: APIRequestContext, page: Page) {
   await request.delete("/api/dev/users/user-1/house/current").catch(() => undefined);
-  await page.addInitScript(() => window.localStorage.clear());
+  await page.goto("/");
+  await page.evaluate(() => window.localStorage.clear());
 }
 
 async function openFresh(page: Page) {
@@ -24,6 +25,10 @@ async function createTaskFromRoomPanel(page: Page, title: string) {
   await expect(dialog).toBeHidden();
 }
 
+function taskInput(page: Page, title: string) {
+  return page.locator(`input[value="${title}"]`);
+}
+
 test.beforeEach(async ({ request, page }) => {
   await resetHouse(request, page);
 });
@@ -33,6 +38,9 @@ test("empty state shows onboarding splash and creates a blank house", async ({ p
   await expect(page.getByRole("group", { name: "Static example of a room-by-room home project plan" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Kitchen • 3 open tasks" })).toBeVisible();
   await expect(page.getByText("Next: book electrician")).toBeVisible();
+  await expect(page.getByText("Saving uses an essential session cookie")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Privacy Policy" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Cookie Policy" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Start with projects" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Start with rooms" })).toBeVisible();
   await expect(page.getByText("Project summary")).toHaveCount(0);
@@ -42,6 +50,24 @@ test("empty state shows onboarding splash and creates a blank house", async ({ p
 
   await expect(page.getByLabel("Floor Name")).toHaveValue("Main Floor");
   await expect(page.getByLabel("Room Name")).toHaveValue("Main Room");
+});
+
+test("privacy, cookie, and terms pages render", async ({ page }) => {
+  await page.goto("/privacy");
+  await expect(page.getByRole("heading", { name: "Privacy Policy" })).toBeVisible();
+  await expect(page.getByText("Google account ID")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Cookie Policy" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Terms of Service" })).toBeVisible();
+
+  await page.goto("/cookies");
+  await expect(page.getByRole("heading", { name: "Cookie Policy" })).toBeVisible();
+  await expect(page.getByText("homeplan_session")).toBeVisible();
+  await expect(page.getByText("no analytics, advertising, cross-site tracking")).toBeVisible();
+
+  await page.goto("/terms");
+  await expect(page.getByRole("heading", { name: "Terms of Service" })).toBeVisible();
+  await expect(page.getByText("No Professional Advice")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Privacy Policy" })).toBeVisible();
 });
 
 test("project setup creates rooms and starter tasks", async ({ page }) => {
@@ -55,7 +81,7 @@ test("project setup creates rooms and starter tasks", async ({ page }) => {
 
   await expect(page.getByLabel("Floor Name")).toHaveValue("Main Floor");
   await expect(page.getByLabel("Room Name")).toHaveValue("Kitchen");
-  await expect(page.getByDisplayValue("Fix cabinet hinge")).toBeVisible();
+  await expect(taskInput(page, "Fix cabinet hinge")).toBeVisible();
 });
 
 test("project setup can place work on the exterior area", async ({ page }) => {
@@ -70,7 +96,7 @@ test("project setup can place work on the exterior area", async ({ page }) => {
   await expect(page.getByRole("tab", { name: "Exterior" })).toBeVisible();
   await expect(page.getByLabel("Floor Name")).toHaveValue("Exterior");
   await expect(page.getByLabel("Room Name")).toHaveValue("Exterior");
-  await expect(page.getByDisplayValue("Clean gutters")).toBeVisible();
+  await expect(taskInput(page, "Clean gutters")).toBeVisible();
 });
 
 test("room setup creates multiple floors and rooms", async ({ page }) => {
@@ -93,7 +119,7 @@ test("room panel guided task form accepts title-only submit", async ({ page }) =
 
   await createTaskFromRoomPanel(page, "Replace light switch");
 
-  await expect(page.getByDisplayValue("Replace light switch")).toBeVisible();
+  await expect(taskInput(page, "Replace light switch")).toBeVisible();
 });
 
 test("all tasks guided task form requires a target", async ({ page }) => {
@@ -108,7 +134,7 @@ test("all tasks guided task form requires a target", async ({ page }) => {
   await dialog.getByLabel("Target").selectOption({ label: "Main Floor / Main Room" });
   await dialog.getByRole("button", { name: "Create Task" }).click();
 
-  await expect(page.getByDisplayValue("Patch drywall")).toBeVisible();
+  await expect(taskInput(page, "Patch drywall")).toBeVisible();
 });
 
 test("all tasks form can create an unplaced room with a task", async ({ page }) => {
@@ -124,8 +150,8 @@ test("all tasks form can create an unplaced room with a task", async ({ page }) 
   await dialog.getByRole("button", { name: "Create Task" }).click();
 
   await expect(page.getByRole("heading", { name: "Unplaced Rooms" })).toBeVisible();
-  await expect(page.getByText("Hall Closet")).toBeVisible();
-  await expect(page.getByDisplayValue("Measure closet shelves")).toBeVisible();
+  await expect(page.locator(".unplaced-panel").getByText("Hall Closet")).toBeVisible();
+  await expect(taskInput(page, "Measure closet shelves")).toBeVisible();
 });
 
 test("progress control appears only after status moves in progress", async ({ page }) => {
@@ -134,7 +160,7 @@ test("progress control appears only after status moves in progress", async ({ pa
   await createTaskFromRoomPanel(page, "Repair loose railing");
 
   await expect(page.getByRole("spinbutton", { name: "Progress" })).toHaveCount(0);
-  await page.getByLabel("Status").selectOption("in-progress");
+  await page.getByRole("combobox", { name: "Status" }).selectOption("in-progress");
   await expect(page.getByRole("spinbutton", { name: "Progress" })).toBeVisible();
 });
 
@@ -146,7 +172,7 @@ test("dirty draft restores after reload", async ({ page }) => {
   await expect(page.getByText("Unsaved changes")).toBeVisible();
   await page.reload();
 
-  await expect(page.getByDisplayValue("Order outlet covers")).toBeVisible();
+  await expect(taskInput(page, "Order outlet covers")).toBeVisible();
   await expect(page.getByText("Unsaved changes")).toBeVisible();
 });
 

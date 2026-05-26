@@ -20,8 +20,10 @@ func main() {
 
 	port := env("PORT", "8080")
 	cookieName := env("SESSION_COOKIE_NAME", "homeplan_session")
+	authCookieName := env("AUTH_SESSION_COOKIE_NAME", "homeplan_auth")
 	devMode := env("HOMEPLAN_DEV_MODE", "false") == "true"
 	ttl := 14 * 24 * time.Hour
+	authTTL := 30 * 24 * time.Hour
 
 	log.Printf("homeplan api starting on port %s devMode=%t", port, devMode)
 
@@ -51,8 +53,14 @@ func main() {
 	}
 
 	server := &http.Server{
-		Addr:              ":" + port,
-		Handler:           httpapi.NewRouter(houseStore, cookieName, ttl, devMode),
+		Addr: ":" + port,
+		Handler: httpapi.NewRouterWithAuth(houseStore, cookieName, ttl, devMode, httpapi.AuthConfig{
+			GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+			GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+			BaseURL:            os.Getenv("AUTH_BASE_URL"),
+			SessionCookieName:  authCookieName,
+			SessionTTL:         authTTL,
+		}, nil),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

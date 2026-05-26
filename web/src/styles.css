@@ -99,6 +99,13 @@ h1 {
   align-items: center;
 }
 
+.account-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .sync-pill,
 .save-button {
   min-height: 34px;
@@ -962,6 +969,10 @@ textarea.field-control {
 }
 
 .text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
   min-height: 32px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -970,6 +981,7 @@ textarea.field-control {
   font-size: 0.78rem;
   font-weight: 850;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .text-button:disabled {
@@ -979,6 +991,69 @@ textarea.field-control {
 
 .danger-button {
   color: var(--urgent);
+}
+
+.cookie-save-note {
+  max-width: 720px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.app-footer,
+.policy-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.app-footer a,
+.policy-links a {
+  color: var(--accent);
+  font-size: 0.84rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.policy-page {
+  display: grid;
+  gap: 12px;
+  padding: 18px 0 40px;
+}
+
+.policy-page h1 {
+  max-width: 860px;
+  font-size: clamp(2.2rem, 7vw, 4rem);
+}
+
+.policy-updated {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.policy-copy {
+  max-width: 820px;
+  display: grid;
+  gap: 10px;
+  color: var(--ink);
+}
+
+.policy-copy h2 {
+  margin: 14px 0 0;
+  font-size: 1.18rem;
+}
+
+.policy-copy p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.policy-back {
+  width: fit-content;
 }
 
 .modal-backdrop {

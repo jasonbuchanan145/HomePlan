@@ -2,8 +2,11 @@ package httpapi
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,6 +22,25 @@ func TestHealth(t *testing.T) {
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
+	}
+}
+
+func TestOpenAPIDocsAvailable(t *testing.T) {
+	router := NewRouter(store.NewMemoryStore(), "homeplan_session", 14*24*time.Hour, false)
+
+	spec := httptest.NewRecorder()
+	router.ServeHTTP(spec, httptest.NewRequest(http.MethodGet, "/api/openapi.json", nil))
+	if spec.Code != http.StatusOK {
+		t.Fatalf("expected openapi 200, got %d: %s", spec.Code, spec.Body.String())
+	}
+	if !strings.Contains(spec.Body.String(), `"get-health"`) {
+		t.Fatalf("expected health operation in openapi spec, got %s", spec.Body.String())
+	}
+
+	docs := httptest.NewRecorder()
+	router.ServeHTTP(docs, httptest.NewRequest(http.MethodGet, "/api/docs", nil))
+	if docs.Code != http.StatusOK {
+		t.Fatalf("expected docs 200, got %d", docs.Code)
 	}
 }
 
@@ -141,4 +163,113 @@ func TestDevSeedLoadAndReset(t *testing.T) {
 	if after.Code != http.StatusNotFound {
 		t.Fatalf("expected final 404, got %d", after.Code)
 	}
+}
+
+func TestGetMeAnonymous(t *testing.T) {
+	router := NewRouter(store.NewMemoryStore(), "homeplan_session", 14*24*time.Hour, false)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/me", nil))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", recorder.Code)
+	}
+	if !strings.Contains(recorder.Body.String(), `"authenticated":false`) {
+		t.Fatalf("expected anonymous me response, got %s", recorder.Body.String())
+	}
+}
+
+func TestGoogleCallbackCreatesSessionAndMe(t *testing.T) {
+	router := NewRouterWithAuth(store.NewMemoryStore(), "homeplan_session", 14*24*time.Hour, false, AuthConfig{
+		GoogleClientID:     "client-id",
+		GoogleClientSecret: "client-secret",
+		BaseURL:            "http://example.test",
+		SessionCookieName:  "homeplan_auth",
+		SessionTTL:         time.Hour,
+	}, fakeOAuthClient{})
+
+	start := httptest.NewRecorder()
+	router.ServeHTTP(start, httptest.NewRequest(http.MethodGet, "/api/auth/google/start", nil))
+	if start.Code != http.StatusFound {
+		t.Fatalf("expected start redirect, got %d", start.Code)
+	}
+
+	var stateCookie *http.Cookie
+	var sessionCookie *http.Cookie
+	for _, cookie := range start.Result().Cookies() {
+		if cookie.Name == "homeplan_auth_oauth_state" {
+			stateCookie = cookie
+		}
+		if cookie.Name == "homeplan_auth_oauth_google_session" {
+			sessionCookie = cookie
+		}
+	}
+	if stateCookie == nil {
+		t.Fatal("expected oauth state cookie")
+	}
+	if sessionCookie == nil {
+		t.Fatal("expected oauth session cookie")
+	}
+
+	callback := httptest.NewRecorder()
+	callbackReq := httptest.NewRequest(http.MethodGet, "/api/auth/google/callback?code=test-code&state="+stateCookie.Value, nil)
+	callbackReq.AddCookie(stateCookie)
+	callbackReq.AddCookie(sessionCookie)
+	router.ServeHTTP(callback, callbackReq)
+	if callback.Code != http.StatusFound {
+		t.Fatalf("expected callback redirect, got %d: %s", callback.Code, callback.Body.String())
+	}
+
+	meReq := httptest.NewRequest(http.MethodGet, "/api/me", nil)
+	for _, cookie := range callback.Result().Cookies() {
+		meReq.AddCookie(cookie)
+	}
+	me := httptest.NewRecorder()
+	router.ServeHTTP(me, meReq)
+	if me.Code != http.StatusOK {
+		t.Fatalf("expected me 200, got %d", me.Code)
+	}
+	body := me.Body.String()
+	if !strings.Contains(body, `"authenticated":true`) || !strings.Contains(body, `"canUseAI":false`) {
+		t.Fatalf("unexpected me response: %s", body)
+	}
+
+	logout := httptest.NewRecorder()
+	logoutReq := httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil)
+	for _, cookie := range callback.Result().Cookies() {
+		logoutReq.AddCookie(cookie)
+	}
+	router.ServeHTTP(logout, logoutReq)
+	if logout.Code != http.StatusNoContent {
+		t.Fatalf("expected logout 204, got %d", logout.Code)
+	}
+}
+
+type fakeOAuthClient struct{}
+
+func (fakeOAuthClient) Name() string {
+	return "google"
+}
+
+func (fakeOAuthClient) BeginAuth(state string) (AuthProviderSession, error) {
+	if state == "" {
+		return AuthProviderSession{}, context.Canceled
+	}
+	return AuthProviderSession{
+		AuthURL: "https://accounts.example.test/oauth?state=" + state,
+		Session: "fake-session",
+	}, nil
+}
+
+func (fakeOAuthClient) CompleteAuth(session string, params url.Values) (AuthIdentity, error) {
+	if session != "fake-session" || params.Get("code") != "test-code" {
+		return AuthIdentity{}, context.Canceled
+	}
+	return AuthIdentity{
+		Provider:        "google",
+		ProviderSubject: "google-user-1",
+		Email:           "person@example.com",
+		EmailVerified:   true,
+		DisplayName:     "Person Example",
+		AvatarURL:       "https://example.com/avatar.png",
+	}, nil
 }
