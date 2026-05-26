@@ -7,7 +7,7 @@ import SummaryCards from "./components/SummaryCards.vue";
 import TaskCreateForm from "./components/TaskCreateForm.vue";
 import TaskPanel from "./components/TaskPanel.vue";
 import TaskTable from "./components/TaskTable.vue";
-import { deleteCurrentHouse, loadCurrentHouse, saveCurrentHouse } from "./services/api";
+import { deleteCurrentHouse, loadCurrentHouse, loadMe, logout as logoutSession, saveCurrentHouse, type MeResponse } from "./services/api";
 import type { HouseState, ItemNeeded, Room, Subtask, Task, TaskCreateDraft, TaskPriority, TaskStatus, TaskTargetOption, TaskType, TaskWithContext } from "./types/house";
 import { allTasks, clampTaskPercent, deleteHouseTask, getRoomTasks, sortedTasks, taskPercent, updateHouseTask, type SortDirection, type SortKey } from "./utils/house";
 
@@ -18,6 +18,7 @@ type RoomSize = "small" | "medium" | "large";
 type RoomShape = "square" | "wide" | "tall";
 type OnboardingMode = "projects" | "rooms" | null;
 type ProjectSetupFloorKey = "main" | "second" | "exterior";
+type PageMode = "app" | "privacy" | "cookies";
 
 interface HouseDraft {
   house: HouseState;
@@ -39,6 +40,7 @@ interface FloorSetupRow {
 }
 
 const DRAFT_KEY = "homeplan.houseDraft";
+const anonymousCookieNotice = "Saving uses an essential session cookie so this browser can reopen this house plan.";
 const ROOM_SIZE_PRESETS: Record<RoomSize, Record<RoomShape, Pick<Room["layout"], "w" | "h">>> = {
   small: {
     square: { w: 18, h: 18 },
@@ -82,6 +84,9 @@ const COMMON_PROJECT_AREAS = [
 ];
 
 const house = ref<HouseState | null>(null);
+const pageMode = ref<PageMode>(pathPageMode());
+const me = ref<MeResponse>({ authenticated: false, user: null, apps: { homeplan: { canAccess: false, canUseAI: false } } });
+const authState = ref<"loading" | "ready" | "error">("loading");
 const activeFloor = ref("top");
 const selectedRoomId = ref("top-stairs");
 const taskFilter = ref("rooms");
@@ -122,6 +127,11 @@ const saveButtonLabel = computed(() => {
   if (saveState.value === "saved") return "Saved";
   if (saveState.value === "error") return "Save";
   return "Save";
+});
+const accountLabel = computed(() => {
+  if (authState.value === "loading") return "Checking account";
+  if (me.value.authenticated && me.value.user) return me.value.user.displayName || me.value.user.email;
+  return "Not signed in";
 });
 const startOverLabel = computed(() => (resetState.value === "resetting" ? "Clearing" : "Start Over"));
 const taskTargetOptions = computed<TaskTargetOption[]>(() => {
@@ -208,9 +218,13 @@ const nextFocus = computed(() => focusTasks.value[0]?.area || "Stairs");
 
 onMounted(async () => {
   window.addEventListener("beforeunload", warnBeforeUnload);
+  window.addEventListener("popstate", syncPageMode);
+  await refreshMe();
+  if (pageMode.value !== "app") return;
   const draft = readDraft();
   try {
     const response = await loadCurrentHouse();
+    if (house.value || saveState.value === "dirty" || saveState.value === "saving") return;
     if (draft?.dirty) {
       loadHouse(draft.house, "empty", "dirty");
       return;
@@ -230,6 +244,7 @@ onMounted(async () => {
     dataSource.value = "empty";
     saveState.value = "idle";
   } catch {
+    if (house.value || saveState.value === "dirty" || saveState.value === "saving") return;
     if (draft) {
       loadHouse(draft.house, "empty", "error");
       return;
@@ -242,7 +257,37 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("beforeunload", warnBeforeUnload);
+  window.removeEventListener("popstate", syncPageMode);
 });
+
+function pathPageMode(): PageMode {
+  if (window.location.pathname === "/privacy") return "privacy";
+  if (window.location.pathname === "/cookies") return "cookies";
+  return "app";
+}
+
+function syncPageMode() {
+  pageMode.value = pathPageMode();
+}
+
+async function refreshMe() {
+  authState.value = "loading";
+  try {
+    me.value = await loadMe();
+    authState.value = "ready";
+  } catch {
+    me.value = { authenticated: false, user: null, apps: { homeplan: { canAccess: false, canUseAI: false } } };
+    authState.value = "error";
+  }
+}
+
+async function signOut() {
+  try {
+    await logoutSession();
+  } finally {
+    await refreshMe();
+  }
+}
 
 function warnBeforeUnload(event: BeforeUnloadEvent) {
   if (!hasUnsavedChanges.value) return;
@@ -433,9 +478,14 @@ async function createAndSaveHouse(nextHouse: HouseState) {
   saveState.value = "saving";
   try {
     await saveCurrentHouse(nextHouse);
-    clearDraft();
     dataSource.value = "api";
-    saveState.value = "saved";
+    if (house.value === nextHouse) {
+      clearDraft();
+      saveState.value = "saved";
+    } else if (house.value) {
+      writeDraft(house.value, true);
+      saveState.value = "dirty";
+    }
   } catch {
     saveState.value = "error";
   }
@@ -1030,6 +1080,50 @@ async function startOver() {
 
 <template>
   <main class="app">
+    <section v-if="pageMode === 'privacy'" class="policy-page" aria-labelledby="privacy-title">
+      <a class="text-button policy-back" href="/">Back to HomePlan</a>
+      <p class="eyebrow">Privacy</p>
+      <h1 id="privacy-title">Privacy Policy</h1>
+      <p class="policy-updated">Last updated May 26, 2026.</p>
+      <div class="policy-copy">
+        <p>HomePlan helps you create and save room-by-room home project plans. We collect only the information needed to run the planner, keep your work available, and support optional account features.</p>
+        <h2>Information We Collect</h2>
+        <p>Anonymous plans use an essential browser session cookie so this browser can save and reopen a house plan. Saved plans include the rooms, tasks, notes, materials, and progress details you enter.</p>
+        <p>If you sign in with Google, we use your Google account ID, email address, display name, and profile image to create your account and session. We do not request Google Drive, Gmail, Calendar, or other Google content scopes.</p>
+        <h2>How We Use Information</h2>
+        <p>We use your information to load and save your house plan, maintain your signed-in session, show account status, and apply HomePlan entitlements such as future AI access.</p>
+        <p>AI planning is not active yet. When added, it will be backend-only, entitlement-gated, and designed to return proposed subtasks or item suggestions without automatically changing your plan. The frontend does not call OpenAI directly.</p>
+        <h2>Sharing And Tracking</h2>
+        <p>HomePlan does not use advertising cookies, cross-site tracking, marketing pixels, or analytics cookies. We do not sell personal information.</p>
+        <h2>Deletion</h2>
+        <p>You can clear the current house from the app with Start Over. For account or saved data deletion requests, contact the site operator for your HomePlan deployment.</p>
+      </div>
+      <nav class="policy-links" aria-label="Policy links">
+        <a href="/cookies">Cookie Policy</a>
+        <a href="/">HomePlan</a>
+      </nav>
+    </section>
+
+    <section v-else-if="pageMode === 'cookies'" class="policy-page" aria-labelledby="cookies-title">
+      <a class="text-button policy-back" href="/">Back to HomePlan</a>
+      <p class="eyebrow">Cookies</p>
+      <h1 id="cookies-title">Cookie Policy</h1>
+      <p class="policy-updated">Last updated May 26, 2026.</p>
+      <div class="policy-copy">
+        <p>HomePlan currently uses only essential cookies required for requested app features. There are no analytics, advertising, cross-site tracking, or marketing cookies.</p>
+        <h2>Essential Cookies</h2>
+        <p><strong>homeplan_session</strong> keeps an anonymous house plan associated with this browser so you can save and reopen it. It is currently configured for a 14-day anonymous session.</p>
+        <p><strong>homeplan_auth</strong> keeps you signed in after Google authentication. It is currently configured for a 30-day signed-in session.</p>
+        <h2>Why There Is No Cookie Banner</h2>
+        <p>These cookies are used only to provide the save, reopen, and sign-in features you choose to use. If HomePlan later adds analytics, ads, A/B testing, or other nonessential tracking, the cookie experience will be updated before those tools are enabled.</p>
+      </div>
+      <nav class="policy-links" aria-label="Policy links">
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/">HomePlan</a>
+      </nav>
+    </section>
+
+    <template v-else>
     <section class="hero" aria-labelledby="page-title">
       <div>
         <p class="eyebrow">Home project tracker</p>
@@ -1037,6 +1131,11 @@ async function startOver() {
       </div>
       <div class="hero-side">
         <p class="hero-copy">A glanceable plan for the urgent fixes, contractor calls, DIY projects, and slower room refresh work ahead.</p>
+        <div class="account-row" aria-label="Account status">
+          <span class="sync-pill">{{ accountLabel }}</span>
+          <a v-if="!me.authenticated" class="text-button" href="/api/auth/google/start">Sign in with Google</a>
+          <button v-else class="text-button" type="button" @click="signOut">Sign out</button>
+        </div>
         <div class="sync-row">
           <span class="sync-pill">{{ syncLabel }}</span>
           <button class="save-button" type="button" :disabled="!house || saveState === 'saving'" @click="saveHouse">
@@ -1195,6 +1294,7 @@ async function startOver() {
       <div class="blank-house-row">
         <button class="text-button" type="button" @click="createBlankHouse">Create Blank House</button>
       </div>
+      <p class="cookie-save-note">{{ anonymousCookieNotice }}</p>
     </section>
 
     <template v-else>
@@ -1376,5 +1476,11 @@ async function startOver() {
       @close="closeTaskCreateForm"
       @create-task="createTaskFromDraft"
     />
+
+    <footer class="app-footer">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/cookies">Cookie Policy</a>
+    </footer>
+    </template>
   </main>
 </template>

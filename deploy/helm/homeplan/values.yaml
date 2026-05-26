@@ -17,6 +17,10 @@ api:
   service:
     port: 8080
   sessionCookieName: homeplan_session
+  authSessionCookieName: homeplan_auth
+  authBaseUrl: http://localhost:8080
+  googleClientId: ""
+  googleClientSecret: ""
   devMode: true
 
 postgres:

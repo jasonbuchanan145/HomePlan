@@ -5,8 +5,9 @@ HomePlan is evolving from a static GitHub Pages dashboard into a fullstack home 
 This milestone keeps the existing dashboard behavior while adding:
 
 - Vue 3 + TypeScript + Vite frontend in `web/`
-- Thin Go REST API in `api/`
+- Go API in `api/` using `net/http`, Huma-generated OpenAPI docs, and Goth-backed OAuth providers
 - Postgres relational shell plus JSONB house state migrations in `db/migrations/`
+- Shared Google identity/session groundwork with per-app entitlements
 - Helm chart for frontend, API, and Postgres in `deploy/helm/homeplan/`
 - Minikube runner for local integration testing
 
@@ -53,7 +54,9 @@ npm run build
 npm run dev
 ```
 
-The frontend tries `GET /api/house/current` first. If no house is available, it starts from an empty state and lets the homeowner create a blank or guided local draft before saving.
+The frontend tries `GET /api/house/current` first. If no house is available, it starts from an empty state and lets the homeowner create a blank or guided local draft before saving. It also fetches `GET /api/me` to show signed-in state when Google auth is configured.
+
+Privacy and cookie pages are available at `/privacy` and `/cookies`. HomePlan currently uses only essential session cookies for anonymous plan persistence and signed-in sessions; no analytics, ads, cross-site tracking, or marketing cookies are enabled.
 
 Native Windows `npm` is not the primary verification path on the current development machine. Prefer the Minikube image build for frontend verification:
 
@@ -83,16 +86,35 @@ go run ./cmd/homeplan-api
 Endpoints:
 
 - `GET /healthz`
+- `GET /api/docs`
+- `GET /api/openapi.json`
+- `GET /api/me`
+- `GET /api/auth/google/start`
+- `GET /api/auth/google/callback`
+- `POST /api/auth/logout`
 - `GET /api/house/current`
 - `PUT /api/house/current`
+- `DELETE /api/house/current`
 
-Anonymous sessions use an opaque `homeplan_session` cookie. Project data is stored server-side in Postgres, not in the cookie.
+Anonymous sessions use an opaque `homeplan_session` cookie. Signed-in sessions use `homeplan_auth` by default. Project data is stored server-side in Postgres, not in the cookies.
+
+Google sign-in is configured through Helm/API environment values:
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `AUTH_BASE_URL`
+- `AUTH_SESSION_COOKIE_NAME`
+
+Google OAuth is implemented through a small Goth provider adapter. If Google credentials are not configured, `/api/auth/google/start` returns `503` and the anonymous planner remains usable. API reference docs are served at `/api/docs`, with the generated OpenAPI document at `/api/openapi.json`.
 
 ## Database
 
-The first migration creates:
+The migrations create:
 
 - `users`
+- `user_identities`
+- `user_sessions`
+- `app_entitlements`
 - `anonymous_sessions`
 - `houses`
 - `house_members`
@@ -103,7 +125,7 @@ The first migration creates:
 - `ai_runs`
 - `api_tokens`
 
-The current editable house document lives in `house_state.state` as JSONB. Relational tables cover identity, sessions, permissions, audit history, AI runs, proposals, and future MCP/API access.
+The current editable house document lives in `house_state.state` as JSONB. `users`, `user_identities`, `user_sessions`, and `app_entitlements` are app-neutral so future apps under the same domain can share identity without separate sign-ins. HomePlan-specific ownership and permissions stay in `houses` and `house_members`.
 
 ## Static Container
 
