@@ -56,7 +56,7 @@ npm run dev
 
 The frontend tries `GET /api/house/current` first. If no house is available, it starts from an empty state and lets the homeowner create a blank or guided local draft before saving. It also fetches `GET /api/me` to show signed-in state when Google auth is configured.
 
-Privacy and cookie pages are available at `/privacy` and `/cookies`. HomePlan currently uses only essential session cookies for anonymous plan persistence and signed-in sessions; no analytics, ads, cross-site tracking, or marketing cookies are enabled.
+Privacy, cookie, and terms pages are available at `/privacy`, `/cookies`, and `/terms`. HomePlan currently uses only essential session cookies for anonymous plan persistence and signed-in sessions; no analytics, ads, cross-site tracking, or marketing cookies are enabled.
 
 Native Windows `npm` is not the primary verification path on the current development machine. Prefer the Minikube image build for frontend verification:
 

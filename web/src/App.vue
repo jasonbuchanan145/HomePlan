@@ -18,7 +18,7 @@ type RoomSize = "small" | "medium" | "large";
 type RoomShape = "square" | "wide" | "tall";
 type OnboardingMode = "projects" | "rooms" | null;
 type ProjectSetupFloorKey = "main" | "second" | "exterior";
-type PageMode = "app" | "privacy" | "cookies";
+type PageMode = "app" | "privacy" | "cookies" | "terms";
 
 interface HouseDraft {
   house: HouseState;
@@ -263,6 +263,7 @@ onBeforeUnmount(() => {
 function pathPageMode(): PageMode {
   if (window.location.pathname === "/privacy") return "privacy";
   if (window.location.pathname === "/cookies") return "cookies";
+  if (window.location.pathname === "/terms") return "terms";
   return "app";
 }
 
@@ -1100,6 +1101,7 @@ async function startOver() {
       </div>
       <nav class="policy-links" aria-label="Policy links">
         <a href="/cookies">Cookie Policy</a>
+        <a href="/terms">Terms of Service</a>
         <a href="/">HomePlan</a>
       </nav>
     </section>
@@ -1119,6 +1121,34 @@ async function startOver() {
       </div>
       <nav class="policy-links" aria-label="Policy links">
         <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/">HomePlan</a>
+      </nav>
+    </section>
+
+    <section v-else-if="pageMode === 'terms'" class="policy-page" aria-labelledby="terms-title">
+      <a class="text-button policy-back" href="/">Back to HomePlan</a>
+      <p class="eyebrow">Terms</p>
+      <h1 id="terms-title">Terms of Service</h1>
+      <p class="policy-updated">Last updated May 26, 2026.</p>
+      <div class="policy-copy">
+        <p>HomePlan is a planning tool for organizing home project ideas, room notes, task lists, materials, and progress. By using HomePlan, you agree to use it as an organizational aid and not as a substitute for professional judgment.</p>
+        <h2>No Professional Advice</h2>
+        <p>HomePlan does not provide construction, electrical, plumbing, structural, legal, insurance, permitting, or safety advice. You are responsible for checking local codes, permits, product instructions, contractor qualifications, and safe work practices before starting any project.</p>
+        <h2>Your Plans And Content</h2>
+        <p>You are responsible for the information you enter into HomePlan. During early development, anonymous and signed-in saved plans may change, be reset, or be deleted as the application evolves.</p>
+        <h2>Accounts And Access</h2>
+        <p>Google sign-in is used only to identify your account and keep a signed-in session. HomePlan access and future AI features may be controlled by account entitlements.</p>
+        <h2>AI Suggestions</h2>
+        <p>AI planning is not active yet. If added, AI output will be suggestions only and may be incomplete or incorrect. You must review any suggested tasks, materials, or guidance before relying on them.</p>
+        <h2>Availability And Liability</h2>
+        <p>HomePlan is provided as-is and may change without notice. To the fullest extent allowed by law, the site operator is not liable for losses, project outcomes, property damage, personal injury, or costs resulting from use of the app or reliance on saved plans or suggestions.</p>
+        <h2>Contact</h2>
+        <p>For account, access, terms, or data deletion questions, contact the site operator for your HomePlan deployment.</p>
+      </div>
+      <nav class="policy-links" aria-label="Policy links">
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/cookies">Cookie Policy</a>
         <a href="/">HomePlan</a>
       </nav>
     </section>
@@ -1480,6 +1510,7 @@ async function startOver() {
     <footer class="app-footer">
       <a href="/privacy">Privacy Policy</a>
       <a href="/cookies">Cookie Policy</a>
+      <a href="/terms">Terms of Service</a>
     </footer>
     </template>
   </main>

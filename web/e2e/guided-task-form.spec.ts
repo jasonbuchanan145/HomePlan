@@ -52,16 +52,22 @@ test("empty state shows onboarding splash and creates a blank house", async ({ p
   await expect(page.getByLabel("Room Name")).toHaveValue("Main Room");
 });
 
-test("privacy and cookie policy pages render", async ({ page }) => {
+test("privacy, cookie, and terms pages render", async ({ page }) => {
   await page.goto("/privacy");
   await expect(page.getByRole("heading", { name: "Privacy Policy" })).toBeVisible();
   await expect(page.getByText("Google account ID")).toBeVisible();
   await expect(page.getByRole("link", { name: "Cookie Policy" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Terms of Service" })).toBeVisible();
 
   await page.goto("/cookies");
   await expect(page.getByRole("heading", { name: "Cookie Policy" })).toBeVisible();
   await expect(page.getByText("homeplan_session")).toBeVisible();
   await expect(page.getByText("no analytics, advertising, cross-site tracking")).toBeVisible();
+
+  await page.goto("/terms");
+  await expect(page.getByRole("heading", { name: "Terms of Service" })).toBeVisible();
+  await expect(page.getByText("No Professional Advice")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Privacy Policy" })).toBeVisible();
 });
 
 test("project setup creates rooms and starter tasks", async ({ page }) => {
